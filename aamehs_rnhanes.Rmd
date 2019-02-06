@@ -2,7 +2,7 @@
 title: "aamehs_rnhanes"
 author: "Stephen Lewandowski"
 date: "February 5, 2019"
-output: html_document
+output: github_document
 ---
 
 ```{r setup, include=FALSE}
