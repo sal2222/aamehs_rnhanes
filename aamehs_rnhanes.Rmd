@@ -1,0 +1,112 @@
+---
+title: "aamehs_rnhanes"
+author: "Stephen Lewandowski"
+date: "February 5, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# RNHANES Exploration for AAMEHS
+
+https://cran.r-project.org/web/packages/RNHANES/vignettes/introduction.html
+https://www.r-bloggers.com/nhanes-made-simple-with-rnhanes/
+https://datascienceplus.com/weight-loss-in-the-u-s-an-analysis-of-nhanes-data-with-tidyverse/
+
+
+Install RNHANES package (first time - need development version for most recent cycles)
+```{r install_package}
+# library(devtools)
+# install_github("silentspringinstitute/RNHANES")
+```
+
+```{r packages, message = FALSE}
+library(tidyverse)
+library(RNHANES)
+```
+
+
+NHANES files and the comprehensive variable list
+```{r load_file_names, cache = TRUE, message = FALSE}
+files <- nhanes_data_files()  #1,328 obs of 10 variables
+variables <- nhanes_variables()  #slow, takes ~5 minutes (48,398 obs of 10 variables)
+
+```
+
+```{r explore_files}
+files %>% count(cycle) %>% View
+files %>% count(component)
+```
+
+## Search files and variables
+```{r search_files_options}
+nhanes_search(files, "environmental phenols")
+nhanes_search(files, "pesticides", component == "laboratory", cycle == "2003-2004") 
+nhanes_search(files, "", cycle == "2003-2004") %>% head
+nhanes_search(variables, "triclosan") %>% head
+nhanes_search(variables, "DDT", data_file_name == "LAB28POC") %>% head
+nhanes_search(variables, "", data_file_name == "EPH_E") %>% head
+```
+
+
+## Download data files
+
+specify the name and cycle year, 
+Saves the files to a temporary directory by default. You can optionally set where you want the files to be downloaded.
+```{r load, eval = FALSE}
+nhanes_load_data("EPH", "2007-2008", cache = "./nhanes_data", demographics = TRUE, recode = TRUE)
+```
+
+
+Example of data loaded from multiple files/cycle years. Download all files that contain a "PFOS" variable.
+```{r search_pfos, eval = FALSE}
+?RNHANES::nhanes_search
+results <- nhanes_search(variables, "PFOS")
+results$cycle
+pfos <- nhanes_load_data(results$data_file_name, results$cycle, demographics = TRUE, recode = TRUE) #slow; large list, 9 elements, 12 MB
+
+pfos
+```
+
+## Load and Inspect PFAS data
+NHANES Codebook References:
+https://wwwn.cdc.gov/Nchs/Nhanes/2013-2014/PFAS_H.htm
+https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/PFAS_I.htm
+
+```{r load_pfas}
+pfas_data <- nhanes_load_data("PFAS_I", "2015-2016", demographics = TRUE)
+as_tibble(pfas_data)
+```
+
+Inspect PFAS data from 2015-2016
+```{r examine_pfas}
+pfas_data %>%  nhanes_detection_frequency("LBXNFOA", "LBDNFOAL")
+pfas_data %>% nhanes_sample_size("LBXNFOA","LBDNFOAL")
+pfas_data %>%  nhanes_quantile("LBXNFOA", "LBDNFOAL", quantiles = c(0.5, 0.95))
+```
+
+Histogram, log transformed
+```{r pfas_hist}
+pfas_data %>%  nhanes_hist("LBXNFOA", "LBDNFOAL")
+pfas_data %>%  nhanes_hist("LBXNFOA", "LBDNFOAL", transform = "log")
+
+```
+
+
+```{r plot_pfoa_pfas, message = FALSE}
+pfas_data %>% 
+  ggplot(aes(x = LBXNFOA, y = LBXNFOS)) + 
+  geom_point(aes(color = RIAGENDR), alpha = .5) +
+  geom_smooth(se = TRUE)
+```
+
+```{r plot pfos_age, message = FALSE}
+pfas_data %>% 
+  ggplot(aes(x = RIDAGEYR, y = LBXNFOS)) + 
+  geom_point(aes(color = RIAGENDR), alpha = .5) +
+  geom_smooth(se = TRUE)
+
+```
+
