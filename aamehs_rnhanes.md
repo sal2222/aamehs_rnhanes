@@ -235,11 +235,11 @@ NHANES Codebook References: <https://wwwn.cdc.gov/Nchs/Nhanes/2013-2014/PFAS_H.h
 pfas_data <- nhanes_load_data("PFAS_I", "2015-2016", demographics = TRUE)
 ```
 
-    ## Downloading PFAS_I.XPT to C:\Users\slewa\AppData\Local\Temp\RtmpcZxCXy/PFAS_I.XPT
+    ## Downloading PFAS_I.XPT to C:\Users\slewa\AppData\Local\Temp\RtmpsHNxy5/PFAS_I.XPT
 
-    ## Downloading DEMO_I.XPT to C:\Users\slewa\AppData\Local\Temp\RtmpcZxCXy/DEMO_I.XPT
+    ## Downloading DEMO_I.XPT to C:\Users\slewa\AppData\Local\Temp\RtmpsHNxy5/DEMO_I.XPT
 
-    ## Caching CSV to C:\Users\slewa\AppData\Local\Temp\RtmpcZxCXy/DEMO_I.csv
+    ## Caching CSV to C:\Users\slewa\AppData\Local\Temp\RtmpsHNxy5/DEMO_I.csv
 
 ``` r
 as_tibble(pfas_data)
