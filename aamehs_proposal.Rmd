@@ -1,0 +1,126 @@
+---
+title: "aamehs_proposal"
+author: "Team LSD"
+date: "February 7, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Per- and polyfluoroalkyl substances (PFAS)
+
+## Background
+
+Per- and polyfluoroalkyl substances (PFAS) are human-made compounds that have been used commercially and industrially for over sixty years due to their ability to repel oil and water, withstand elevated temperatures, and resist chemical reactions [1]. Of the thousands of different PFAS compounds, perfluorooctanoic acid (PFOA) and perfluorooctane sulfonate (PFOS) are the most studied. PFASs are used in stain-resistant coatings for upholstery and carpeting, water-resistant breathable clothing, greaseproof food packaging, in the manufacturing process of non-stick cookware, and in aqueous film-forming foams (AFFF) – used to fight petroleum fires at commercial airports and military airfields. These chemicals are extremely persistent in the environment and have been detected in the blood of nearly all sampled Americans [2]. Exposure to PFASs may increase risk of pregnancy-induced hypertension, liver damage, higher cholesterol, thyroid disease, asthma, decreased vaccine antibody response, decreased fertility, and decreased birth weight [3]. 
+
+
+[1]	G. B. Post, J. A. Gleason, and K. R. Cooper, “Key scientific issues in developing drinking water guidelines for perfluoroalkyl acids: Contaminants of emerging concern,” PLoS Biol., vol. 15, no. 12, pp. 1–12, Dec. 2017.
+[2]	U. E. N. C. for E. Assessment, “Fourth national report on human exposure to environmental chemicals, updated tables, March 2018, volume one,” WEB SITE, Mar. 2009.
+[3]	Agency for Toxic Substances and Disease Registry (ATSDR), “Toxicological Profile for Perfluoroalkyls, Draft for Public Comment,” U.S. Department of Health and Human Services, Public Health Service, Atlanta, GA, Jun. 2018.
+
+
+## Hypothesis Options
+
+### 1. Water and food consumption and consumer product use influence PFAS serum concentrations.
+
+Survey Questions (Exposure):
+
+
+### 2. Elevated PFAS concentrations lead to increased cholesterol and/or altered liver enzyeme levels.
+
+Biomarkers (Outcome):
+
+
+### 3. PFAS levels are associated with other chemicals in serum which are common pollutants at industrial sites or airfields (e.g. solvents, fuels/petroleum/oil/lubricants)
+
+Independent Variables: ID solvents, POLs
+
+
+## Data Source: NHANES
+
+Accessed through `RNHANES` package.
+
+https://cran.r-project.org/web/packages/RNHANES/vignettes/introduction.html
+https://www.r-bloggers.com/nhanes-made-simple-with-rnhanes/
+
+
+
+Install RNHANES package 
+```{r install_package}
+# library(devtools)
+# install_github("silentspringinstitute/RNHANES")
+```
+
+```{r packages, message = FALSE}
+library(tidyverse)
+library(RNHANES)
+```
+
+
+NHANES files and the comprehensive variable list
+```{r load_file_names, cache = TRUE, message = FALSE}
+files <- nhanes_data_files()  #1,328 obs of 10 variables
+variables <- nhanes_variables()  #48,398 obs of 10 variables
+
+```
+
+```{r explore_files}
+files %>% count(cycle) %>% View
+files %>% count(component)
+```
+
+
+## Download data files
+
+Example of data loaded from multiple files/cycle years. Download all files that contain a "PFOS" variable.
+```{r search_pfos, eval = FALSE}
+?RNHANES::nhanes_search
+results <- nhanes_search(variables, "PFOS")
+results$cycle
+pfos <- nhanes_load_data(results$data_file_name, results$cycle, demographics = TRUE, recode = TRUE) #slow; large list, 9 elements, 12 MB
+
+pfos
+```
+
+## Load and Inspect PFAS data
+NHANES Codebook References:
+https://wwwn.cdc.gov/Nchs/Nhanes/2013-2014/PFAS_H.htm
+https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/PFAS_I.htm
+
+```{r load_pfas}
+pfas_data <- nhanes_load_data("PFAS_I", "2015-2016", demographics = TRUE)
+as_tibble(pfas_data)
+```
+
+Inspect PFAS data from 2015-2016
+```{r examine_pfas}
+pfas_data %>%  nhanes_detection_frequency("LBXNFOA", "LBDNFOAL")
+pfas_data %>% nhanes_sample_size("LBXNFOA","LBDNFOAL")
+pfas_data %>%  nhanes_quantile("LBXNFOA", "LBDNFOAL", quantiles = c(0.5, 0.95))
+```
+
+Histogram, log transformed
+```{r pfas_hist}
+pfas_data %>%  nhanes_hist("LBXNFOA", "LBDNFOAL")
+pfas_data %>%  nhanes_hist("LBXNFOA", "LBDNFOAL", transform = "log")
+
+```
+
+
+```{r plot_pfoa_pfas, message = FALSE}
+pfas_data %>% 
+  ggplot(aes(x = LBXNFOA, y = LBXNFOS)) + 
+  geom_point(aes(color = RIAGENDR), alpha = .5) +
+  geom_smooth(se = TRUE)
+```
+
+```{r plot pfos_age, message = FALSE}
+pfas_data %>% 
+  ggplot(aes(x = RIDAGEYR, y = LBXNFOS)) + 
+  geom_point(aes(color = RIAGENDR), alpha = .5) +
+  geom_smooth(se = TRUE)
+
+```
+
