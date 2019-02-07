@@ -2,7 +2,7 @@
 title: "aamehs_proposal"
 author: "Team LSD"
 date: "February 7, 2019"
-output: html_document
+output: github_document
 ---
 
 ```{r setup, include=FALSE}
@@ -42,6 +42,7 @@ Independent Variables: ID solvents, POLs
 
 Accessed through `RNHANES` package.
 
+https://github.com/silentspringinstitute/RNHANES
 https://cran.r-project.org/web/packages/RNHANES/vignettes/introduction.html
 https://www.r-bloggers.com/nhanes-made-simple-with-rnhanes/
 
