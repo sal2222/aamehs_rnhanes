@@ -16,21 +16,31 @@ knitr::opts_chunk$set(echo = TRUE)
 Per- and polyfluoroalkyl substances (PFAS) are human-made compounds that have been used commercially and industrially for over sixty years due to their ability to repel oil and water, withstand elevated temperatures, and resist chemical reactions [1]. Of the thousands of different PFAS compounds, perfluorooctanoic acid (PFOA) and perfluorooctane sulfonate (PFOS) are the most studied. PFASs are used in stain-resistant coatings for upholstery and carpeting, water-resistant breathable clothing, greaseproof food packaging, in the manufacturing process of non-stick cookware, and in aqueous film-forming foams (AFFF) – used to fight petroleum fires at commercial airports and military airfields. These chemicals are extremely persistent in the environment and have been detected in the blood of nearly all sampled Americans [2]. Exposure to PFASs may increase risk of pregnancy-induced hypertension, liver damage, higher cholesterol, thyroid disease, asthma, decreased vaccine antibody response, decreased fertility, and decreased birth weight [3]. 
 
 
-[1]	G. B. Post, J. A. Gleason, and K. R. Cooper, “Key scientific issues in developing drinking water guidelines for perfluoroalkyl acids: Contaminants of emerging concern,” PLoS Biol., vol. 15, no. 12, pp. 1–12, Dec. 2017.
-[2]	U. E. N. C. for E. Assessment, “Fourth national report on human exposure to environmental chemicals, updated tables, March 2018, volume one,” WEB SITE, Mar. 2009.
+
+```{r studies_image, fig.cap = "Overview of the Number of Studies Examining PFOA Health Effects (ATSDR, June 2018)"}
+knitr::include_graphics("pfoa_studies.png")
+```
+
+
+
+[1]	G. B. Post, J. A. Gleason, and K. R. Cooper, “Key scientific issues in developing drinking water guidelines for perfluoroalkyl acids: Contaminants of emerging concern,” PLoS Biol., vol. 15, no. 12, pp. 1–12, Dec. 2017.  
+[2]	U. E. N. C. for E. Assessment, “Fourth national report on human exposure to environmental chemicals, updated tables, March 2018, volume one,” WEB SITE, Mar. 2009.  
 [3]	Agency for Toxic Substances and Disease Registry (ATSDR), “Toxicological Profile for Perfluoroalkyls, Draft for Public Comment,” U.S. Department of Health and Human Services, Public Health Service, Atlanta, GA, Jun. 2018.
 
 
-## Hypothesis Options
+## Hypotheses
 
 ### 1. Water and food consumption and consumer product use influence PFAS serum concentrations.
 
-Survey Questions (Exposure):
+IV: Survey Questions: drinking water sources, drinking water consumption, canned goods, microwave popcorn, beauty and personal care products (including dental floss)
 
+DV: Serum PFAS concentrations (Outcome): PFDeA, PFHxS, Me-PFOSA-AcOH, PFNA, PFUA, PFDoA, n-PFOA, Sb-PFOA, n-PFOS, Sm-PFOS
 
-### 2. Elevated PFAS concentrations lead to increased cholesterol and/or altered liver enzyeme levels.
+### 2. Elevated PFAS concentrations contribute to higher BMI.
 
-Biomarkers (Outcome):
+IV: Serum PFAS concentrations (Outcome): PFDeA, PFHxS, Me-PFOSA-AcOH, PFNA, PFUA, PFDoA, n-PFOA, Sb-PFOA, n-PFOS, Sm-PFOS
+
+DV: Body weight, BMI
 
 
 ### 3. PFAS levels are associated with other chemicals in serum which are common pollutants at industrial sites or airfields (e.g. solvents, fuels/petroleum/oil/lubricants)
@@ -95,33 +105,91 @@ pfas_data <- nhanes_load_data("PFAS_I", "2015-2016", demographics = TRUE)
 as_tibble(pfas_data)
 ```
 
-Inspect PFAS data from 2015-2016
-```{r examine_pfas}
-pfas_data %>%  nhanes_detection_frequency("LBXNFOA", "LBDNFOAL")
-pfas_data %>% nhanes_sample_size("LBXNFOA","LBDNFOAL")
-pfas_data %>%  nhanes_quantile("LBXNFOA", "LBDNFOAL", quantiles = c(0.5, 0.95))
+###Basic 2015-2016 PFAS summary table
+(drops `NA` values)
+```{r summary_tables}
+
+pfas_data %>%
+  select(SEQN, LBXPFDE, LBXPFHS, LBXMPAH,	LBXPFNA, LBXPFUA,	LBXPFDO, LBXNFOA,	LBXBFOA, LBXNFOS,	LBXMFOS) %>% 
+  gather(key = "analyte", value = "value", LBXPFDE:LBXMFOS) %>% 
+  group_by(analyte) %>% 
+  summarise(n = n(), 
+            mean = mean(value, na.rm = TRUE),
+            sd = sd(value, na.rm = TRUE),
+            na_count = sum(is.na(value))) %>%
+  knitr::kable(digits = 2)
+
+
+pfas_data %>%
+  select(SEQN, LBXPFDE, LBXPFHS, LBXMPAH,	LBXPFNA, LBXPFUA,	LBXPFDO, LBXNFOA,	LBXBFOA, LBXNFOS,	LBXMFOS) %>% 
+  gather(key = "analyte", value = "value", LBXPFDE:LBXMFOS) %>% 
+  group_by(analyte) %>% 
+  na.omit() %>% 
+  summarise(n = n(), 
+            mean = mean(value),
+            sd = sd(value)) %>%
+  knitr::kable(digits = 2)
+
 ```
 
-Histogram, log transformed
-```{r pfas_hist}
-pfas_data %>%  nhanes_hist("LBXNFOA", "LBDNFOAL")
-pfas_data %>%  nhanes_hist("LBXNFOA", "LBDNFOAL", transform = "log")
+## Boxplots
+
+```{r boxplot}
+pfas_data %>%
+  select(SEQN, LBXPFDE, LBXPFHS, LBXMPAH,	LBXPFNA, LBXPFUA,	LBXPFDO, LBXNFOA,	LBXBFOA, LBXNFOS,	LBXMFOS) %>% 
+  gather(key = "analyte", value = "value", LBXPFDE:LBXMFOS) %>% 
+  group_by(analyte) %>% 
+  na.omit() %>% 
+  ggplot(aes(x = analyte, y = value)) +
+    geom_boxplot() 
+
+
+pfas_data %>%
+  select(SEQN, LBXPFDE, LBXPFHS, LBXMPAH,	LBXPFNA, LBXPFUA,	LBXPFDO, LBXNFOA,	LBXBFOA, LBXNFOS,	LBXMFOS) %>% 
+  gather(key = "analyte", value = "value", LBXPFDE:LBXMFOS) %>% 
+  group_by(analyte) %>% 
+  na.omit() %>% 
+  ggplot(aes(x = analyte, y = value)) +
+    geom_boxplot() +
+     scale_y_log10()
+```
+
+### Ridge plot
+```{r ridge_plot}
+
+pfas_data %>%
+  select(SEQN, LBXPFDE, LBXPFHS, LBXMPAH,	LBXPFNA, LBXPFUA,	LBXPFDO, LBXNFOA,	LBXBFOA, LBXNFOS,	LBXMFOS) %>% 
+  gather(key = "analyte", value = "value", LBXPFDE:LBXMFOS) %>% 
+  group_by(analyte) %>% 
+  na.omit() %>% 
+  filter(value < 10) %>% 
+  ggplot(aes(x = value, y = analyte)) +
+    ggridges::geom_density_ridges(scale = .85) +
+    scale_x_log10()
+    
+
+
+    
 
 ```
 
-
+### PFOS vs. PFOA scatterplot
 ```{r plot_pfoa_pfas, message = FALSE}
 pfas_data %>% 
   ggplot(aes(x = LBXNFOA, y = LBXNFOS)) + 
   geom_point(aes(color = RIAGENDR), alpha = .5) +
-  geom_smooth(se = TRUE)
+  geom_smooth(se = TRUE) +
+    scale_x_log10() +
+    scale_y_log10()
 ```
 
+### PFOS vs age acatterplot
 ```{r plot pfos_age, message = FALSE}
 pfas_data %>% 
   ggplot(aes(x = RIDAGEYR, y = LBXNFOS)) + 
   geom_point(aes(color = RIAGENDR), alpha = .5) +
-  geom_smooth(se = TRUE)
+  geom_smooth(se = TRUE) +
+    scale_y_log10()
 
 ```
 

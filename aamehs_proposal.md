@@ -11,18 +11,33 @@ Background
 
 Per- and polyfluoroalkyl substances (PFAS) are human-made compounds that have been used commercially and industrially for over sixty years due to their ability to repel oil and water, withstand elevated temperatures, and resist chemical reactions \[1\]. Of the thousands of different PFAS compounds, perfluorooctanoic acid (PFOA) and perfluorooctane sulfonate (PFOS) are the most studied. PFASs are used in stain-resistant coatings for upholstery and carpeting, water-resistant breathable clothing, greaseproof food packaging, in the manufacturing process of non-stick cookware, and in aqueous film-forming foams (AFFF) – used to fight petroleum fires at commercial airports and military airfields. These chemicals are extremely persistent in the environment and have been detected in the blood of nearly all sampled Americans \[2\]. Exposure to PFASs may increase risk of pregnancy-induced hypertension, liver damage, higher cholesterol, thyroid disease, asthma, decreased vaccine antibody response, decreased fertility, and decreased birth weight \[3\].
 
-\[1\] G. B. Post, J. A. Gleason, and K. R. Cooper, “Key scientific issues in developing drinking water guidelines for perfluoroalkyl acids: Contaminants of emerging concern,” PLoS Biol., vol. 15, no. 12, pp. 1–12, Dec. 2017. \[2\] U. E. N. C. for E. Assessment, “Fourth national report on human exposure to environmental chemicals, updated tables, March 2018, volume one,” WEB SITE, Mar. 2009. \[3\] Agency for Toxic Substances and Disease Registry (ATSDR), “Toxicological Profile for Perfluoroalkyls, Draft for Public Comment,” U.S. Department of Health and Human Services, Public Health Service, Atlanta, GA, Jun. 2018.
+``` r
+knitr::include_graphics("pfoa_studies.png")
+```
 
-Hypothesis Options
-------------------
+<img src="pfoa_studies.png" alt="Overview of the Number of Studies Examining PFOA Health Effects (ATSDR, June 2018)" width="980" />
+<p class="caption">
+Overview of the Number of Studies Examining PFOA Health Effects (ATSDR, June 2018)
+</p>
+
+\[1\] G. B. Post, J. A. Gleason, and K. R. Cooper, “Key scientific issues in developing drinking water guidelines for perfluoroalkyl acids: Contaminants of emerging concern,” PLoS Biol., vol. 15, no. 12, pp. 1–12, Dec. 2017.
+\[2\] U. E. N. C. for E. Assessment, “Fourth national report on human exposure to environmental chemicals, updated tables, March 2018, volume one,” WEB SITE, Mar. 2009.
+\[3\] Agency for Toxic Substances and Disease Registry (ATSDR), “Toxicological Profile for Perfluoroalkyls, Draft for Public Comment,” U.S. Department of Health and Human Services, Public Health Service, Atlanta, GA, Jun. 2018.
+
+Hypotheses
+----------
 
 ### 1. Water and food consumption and consumer product use influence PFAS serum concentrations.
 
-Survey Questions (Exposure):
+IV: Survey Questions: drinking water sources, drinking water consumption, canned goods, microwave popcorn, beauty and personal care products (including dental floss)
 
-### 2. Elevated PFAS concentrations lead to increased cholesterol and/or altered liver enzyeme levels.
+DV: Serum PFAS concentrations (Outcome): PFDeA, PFHxS, Me-PFOSA-AcOH, PFNA, PFUA, PFDoA, n-PFOA, Sb-PFOA, n-PFOS, Sm-PFOS
 
-Biomarkers (Outcome):
+### 2. Elevated PFAS concentrations contribute to higher BMI.
+
+IV: Serum PFAS concentrations (Outcome): PFDeA, PFHxS, Me-PFOSA-AcOH, PFNA, PFUA, PFDoA, n-PFOA, Sb-PFOA, n-PFOS, Sm-PFOS
+
+DV: Body weight, BMI
 
 ### 3. PFAS levels are associated with other chemicals in serum which are common pollutants at industrial sites or airfields (e.g. solvents, fuels/petroleum/oil/lubricants)
 
@@ -91,11 +106,11 @@ NHANES Codebook References: <https://wwwn.cdc.gov/Nchs/Nhanes/2013-2014/PFAS_H.h
 pfas_data <- nhanes_load_data("PFAS_I", "2015-2016", demographics = TRUE)
 ```
 
-    ## Downloading PFAS_I.XPT to C:\Users\slewa\AppData\Local\Temp\RtmpwtV6dt/PFAS_I.XPT
+    ## Downloading PFAS_I.XPT to C:\Users\slewa\AppData\Local\Temp\RtmpOIgvJc/PFAS_I.XPT
 
-    ## Downloading DEMO_I.XPT to C:\Users\slewa\AppData\Local\Temp\RtmpwtV6dt/DEMO_I.XPT
+    ## Downloading DEMO_I.XPT to C:\Users\slewa\AppData\Local\Temp\RtmpOIgvJc/DEMO_I.XPT
 
-    ## Caching CSV to C:\Users\slewa\AppData\Local\Temp\RtmpwtV6dt/DEMO_I.csv
+    ## Caching CSV to C:\Users\slewa\AppData\Local\Temp\RtmpOIgvJc/DEMO_I.csv
 
 ``` r
 as_tibble(pfas_data)
@@ -132,70 +147,115 @@ as_tibble(pfas_data)
     ## #   LBXNFOS <dbl>, LBDNFOSL <dbl>, LBXMFOS <dbl>, LBDMFOSL <dbl>,
     ## #   file_name <chr>, begin_year <dbl>, end_year <dbl>
 
-Inspect PFAS data from 2015-2016
+### Basic 2015-2016 PFAS summary table
+
+(drops `NA` values)
 
 ``` r
-pfas_data %>%  nhanes_detection_frequency("LBXNFOA", "LBDNFOAL")
+pfas_data %>%
+  select(SEQN, LBXPFDE, LBXPFHS, LBXMPAH,   LBXPFNA, LBXPFUA,   LBXPFDO, LBXNFOA,   LBXBFOA, LBXNFOS,   LBXMFOS) %>% 
+  gather(key = "analyte", value = "value", LBXPFDE:LBXMFOS) %>% 
+  group_by(analyte) %>% 
+  summarise(n = n(), 
+            mean = mean(value, na.rm = TRUE),
+            sd = sd(value, na.rm = TRUE),
+            na_count = sum(is.na(value))) %>%
+  knitr::kable(digits = 2)
 ```
 
-    ## Weights column wasn't specified -- using WTSB2YR for weights
-
-    ##       value     cycle begin_year end_year file_name  column weights_column
-    ## 1 0.9894482 2015-2016       2015     2016    PFAS_I LBXNFOA        WTSB2YR
-    ##   comment_column                name
-    ## 1       LBDNFOAL detection_frequency
+| analyte |     n|  mean|    sd|  na\_count|
+|:--------|-----:|-----:|-----:|----------:|
+| LBXBFOA |  2170|  0.07|  0.02|        177|
+| LBXMFOS |  2170|  1.94|  1.88|        177|
+| LBXMPAH |  2170|  0.17|  0.27|        177|
+| LBXNFOA |  2170|  1.81|  1.63|        177|
+| LBXNFOS |  2170|  5.10|  6.84|        177|
+| LBXPFDE |  2170|  0.26|  0.45|        177|
+| LBXPFDO |  2170|  0.07|  0.01|        177|
+| LBXPFHS |  2170|  1.61|  1.75|        177|
+| LBXPFNA |  2170|  0.78|  0.70|        177|
+| LBXPFUA |  2170|  0.16|  0.26|        177|
 
 ``` r
-pfas_data %>% nhanes_sample_size("LBXNFOA","LBDNFOAL")
+pfas_data %>%
+  select(SEQN, LBXPFDE, LBXPFHS, LBXMPAH,   LBXPFNA, LBXPFUA,   LBXPFDO, LBXNFOA,   LBXBFOA, LBXNFOS,   LBXMFOS) %>% 
+  gather(key = "analyte", value = "value", LBXPFDE:LBXMFOS) %>% 
+  group_by(analyte) %>% 
+  na.omit() %>% 
+  summarise(n = n(), 
+            mean = mean(value),
+            sd = sd(value)) %>%
+  knitr::kable(digits = 2)
 ```
 
-    ## Weights column wasn't specified -- using WTSB2YR for weights
+| analyte |     n|  mean|    sd|
+|:--------|-----:|-----:|-----:|
+| LBXBFOA |  1993|  0.07|  0.02|
+| LBXMFOS |  1993|  1.94|  1.88|
+| LBXMPAH |  1993|  0.17|  0.27|
+| LBXNFOA |  1993|  1.81|  1.63|
+| LBXNFOS |  1993|  5.10|  6.84|
+| LBXPFDE |  1993|  0.26|  0.45|
+| LBXPFDO |  1993|  0.07|  0.01|
+| LBXPFHS |  1993|  1.61|  1.75|
+| LBXPFNA |  1993|  0.78|  0.70|
+| LBXPFUA |  1993|  0.16|  0.26|
 
-    ##   value     cycle begin_year end_year file_name  column weights_column
-    ## 1  1993 2015-2016       2015     2016    PFAS_I LBXNFOA        WTSB2YR
-    ##   comment_column        name
-    ## 1       LBDNFOAL sample size
+Boxplots
+--------
 
 ``` r
-pfas_data %>%  nhanes_quantile("LBXNFOA", "LBDNFOAL", quantiles = c(0.5, 0.95))
+pfas_data %>%
+  select(SEQN, LBXPFDE, LBXPFHS, LBXMPAH,   LBXPFNA, LBXPFUA,   LBXPFDO, LBXNFOA,   LBXBFOA, LBXNFOS,   LBXMFOS) %>% 
+  gather(key = "analyte", value = "value", LBXPFDE:LBXMFOS) %>% 
+  group_by(analyte) %>% 
+  na.omit() %>% 
+  ggplot(aes(x = analyte, y = value)) +
+    geom_boxplot() 
 ```
 
-    ## Weights column wasn't specified -- using WTSB2YR for weights
-
-    ## Warning in callback(nhanes_data, ret): No detection limit found from the
-    ## summary tables. Falling back to inferring detection limit from the fill
-    ## value.
-
-    ##   value     cycle begin_year end_year file_name  column weights_column
-    ## 1   1.5 2015-2016       2015     2016    PFAS_I LBXNFOA        WTSB2YR
-    ## 2   4.1 2015-2016       2015     2016    PFAS_I LBXNFOA        WTSB2YR
-    ##   comment_column below_lod quantile     name
-    ## 1       LBDNFOAL     FALSE      50% quantile
-    ## 2       LBDNFOAL     FALSE      95% quantile
-
-Histogram, log transformed
+![](aamehs_proposal_files/figure-markdown_github/boxplot-1.png)
 
 ``` r
-pfas_data %>%  nhanes_hist("LBXNFOA", "LBDNFOAL")
+pfas_data %>%
+  select(SEQN, LBXPFDE, LBXPFHS, LBXMPAH,   LBXPFNA, LBXPFUA,   LBXPFDO, LBXNFOA,   LBXBFOA, LBXNFOS,   LBXMFOS) %>% 
+  gather(key = "analyte", value = "value", LBXPFDE:LBXMFOS) %>% 
+  group_by(analyte) %>% 
+  na.omit() %>% 
+  ggplot(aes(x = analyte, y = value)) +
+    geom_boxplot() +
+     scale_y_log10()
 ```
 
-    ## Weights column wasn't specified -- using WTSB2YR for weights
+![](aamehs_proposal_files/figure-markdown_github/boxplot-2.png)
 
-![](aamehs_proposal_files/figure-markdown_github/pfas_hist-1.png)
+### Ridge plot
 
 ``` r
-pfas_data %>%  nhanes_hist("LBXNFOA", "LBDNFOAL", transform = "log")
+pfas_data %>%
+  select(SEQN, LBXPFDE, LBXPFHS, LBXMPAH,   LBXPFNA, LBXPFUA,   LBXPFDO, LBXNFOA,   LBXBFOA, LBXNFOS,   LBXMFOS) %>% 
+  gather(key = "analyte", value = "value", LBXPFDE:LBXMFOS) %>% 
+  group_by(analyte) %>% 
+  na.omit() %>% 
+  filter(value < 10) %>% 
+  ggplot(aes(x = value, y = analyte)) +
+    ggridges::geom_density_ridges(scale = .85) +
+    scale_x_log10()
 ```
 
-    ## Weights column wasn't specified -- using WTSB2YR for weights
+    ## Picking joint bandwidth of 0.0551
 
-![](aamehs_proposal_files/figure-markdown_github/pfas_hist-2.png)
+![](aamehs_proposal_files/figure-markdown_github/ridge_plot-1.png)
+
+### PFOS vs. PFOA scatterplot
 
 ``` r
 pfas_data %>% 
   ggplot(aes(x = LBXNFOA, y = LBXNFOS)) + 
   geom_point(aes(color = RIAGENDR), alpha = .5) +
-  geom_smooth(se = TRUE)
+  geom_smooth(se = TRUE) +
+    scale_x_log10() +
+    scale_y_log10()
 ```
 
     ## Warning: Removed 177 rows containing non-finite values (stat_smooth).
@@ -204,11 +264,14 @@ pfas_data %>%
 
 ![](aamehs_proposal_files/figure-markdown_github/plot_pfoa_pfas-1.png)
 
+### PFOS vs age acatterplot
+
 ``` r
 pfas_data %>% 
   ggplot(aes(x = RIDAGEYR, y = LBXNFOS)) + 
   geom_point(aes(color = RIAGENDR), alpha = .5) +
-  geom_smooth(se = TRUE)
+  geom_smooth(se = TRUE) +
+    scale_y_log10()
 ```
 
     ## Warning: Removed 177 rows containing non-finite values (stat_smooth).
