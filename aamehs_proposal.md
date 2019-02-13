@@ -11,6 +11,7 @@ February 13, 2019
         -   [3. Serum PFAS levels serve as a mediator between water/food consumption and body mass.](#serum-pfas-levels-serve-as-a-mediator-between-waterfood-consumption-and-body-mass.)
         -   [Additional: PFAS levels are associated with other chemicals in serum which are common pollutants at industrial sites or airfields](#additional-pfas-levels-are-associated-with-other-chemicals-in-serum-which-are-common-pollutants-at-industrial-sites-or-airfields)
     -   [Data Source: NHANES](#data-source-nhanes)
+    -   [NHANES Dietary Interviews](#nhanes-dietary-interviews)
     -   [PFAS](#pfas)
         -   [Load and Inspect PFAS data](#load-and-inspect-pfas-data)
         -   [Basic 2015-2016 PFAS summary table](#basic-2015-2016-pfas-summary-table)
@@ -65,6 +66,8 @@ Potential confounders, effect modifiers, or co-variates of interest:
 -   smoking status
 -   household income
 -   alcohol
+-   waist circumference, 2 years of age and older
+-   sagittal abdominal diameter, 8 years of age and older
 
 *References*: <https://www.ncbi.nlm.nih.gov/pubmed/?term=PFAS+and+BMI>
 
@@ -119,6 +122,22 @@ files %>% count(component)
     ## 4 laboratory      643
     ## 5 questionnaire   438
 
+NHANES Dietary Interviews
+-------------------------
+
+*Reference*: <https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/DR1IFF_I.htm>
+
+Detailed information about each food/beverage item (including the description, amount of, and nutrient content) reported by each participant is included in the Individual Foods files.
+
+-   Drinking water variables:
+
+    -   Total plain water drank yesterday (gm)
+    -   Total tap water drank yesterday (gm)
+    -   Total bottled water drank yesterday (gm)
+    -   Tap water source
+
+-   Fish consumption during past 30 days (by type)
+
 PFAS
 ----
 
@@ -127,12 +146,15 @@ PFAS
 NHANES Codebook References: <https://wwwn.cdc.gov/Nchs/Nhanes/2013-2014/PFAS_H.htm> <https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/PFAS_I.htm>
 
 ``` r
-pfas_data <- nhanes_load_data("PFAS_I", "2015-2016", demographics = TRUE)
+pfas_data <- nhanes_load_data("PFAS_I", "2015-2016", demographics = TRUE) %>% 
+  janitor::clean_names() %>% 
+  rename(pfdea = lbxpfde, pfhxs = lbxpfhs, me_pfosa_acoh = lbxmpah, pfna = lbxpfna, pfua = lbxpfua, pfdoa = lbxpfdo, n_pfoa = lbxnfoa,  sb_pfoa = lbxbfoa, n_pfos = lbxnfos,    sm_pfos = lbxmfos)
+  
 as_tibble(pfas_data)
 ```
 
     ## # A tibble: 2,170 x 72
-    ##     SEQN cycle SDDSRVYR RIDSTATR RIAGENDR RIDAGEYR RIDAGEMN RIDRETH1
+    ##     seqn cycle sddsrvyr ridstatr riagendr ridageyr ridagemn ridreth1
     ##    <dbl> <chr>    <dbl>    <dbl>    <dbl>    <dbl>    <dbl>    <dbl>
     ##  1 83736 2015~        9        2        2       42       NA        4
     ##  2 83745 2015~        9        2        2       15       NA        3
@@ -144,30 +166,30 @@ as_tibble(pfas_data)
     ##  8 83770 2015~        9        2        1       15       NA        4
     ##  9 83774 2015~        9        2        2       13       NA        3
     ## 10 83776 2015~        9        2        2       58       NA        1
-    ## # ... with 2,160 more rows, and 64 more variables: RIDRETH3 <dbl>,
-    ## #   RIDEXMON <dbl>, RIDEXAGM <dbl>, DMQMILIZ <dbl>, DMQADFC <dbl>,
-    ## #   DMDBORN4 <dbl>, DMDCITZN <dbl>, DMDYRSUS <dbl>, DMDEDUC3 <dbl>,
-    ## #   DMDEDUC2 <dbl>, DMDMARTL <dbl>, RIDEXPRG <dbl>, SIALANG <dbl>,
-    ## #   SIAPROXY <dbl>, SIAINTRP <dbl>, FIALANG <dbl>, FIAPROXY <dbl>,
-    ## #   FIAINTRP <dbl>, MIALANG <dbl>, MIAPROXY <dbl>, MIAINTRP <dbl>,
-    ## #   AIALANGA <dbl>, DMDHHSIZ <dbl>, DMDFMSIZ <dbl>, DMDHHSZA <dbl>,
-    ## #   DMDHHSZB <dbl>, DMDHHSZE <dbl>, DMDHRGND <dbl>, DMDHRAGE <dbl>,
-    ## #   DMDHRBR4 <dbl>, DMDHREDU <dbl>, DMDHRMAR <dbl>, DMDHSEDU <dbl>,
-    ## #   WTINT2YR <dbl>, WTMEC2YR <dbl>, SDMVPSU <dbl>, SDMVSTRA <dbl>,
-    ## #   INDHHIN2 <dbl>, INDFMIN2 <dbl>, INDFMPIR <dbl>, WTSB2YR <dbl>,
-    ## #   LBXPFDE <dbl>, LBDPFDEL <dbl>, LBXPFHS <dbl>, LBDPFHSL <dbl>,
-    ## #   LBXMPAH <dbl>, LBDMPAHL <dbl>, LBXPFNA <dbl>, LBDPFNAL <dbl>,
-    ## #   LBXPFUA <dbl>, LBDPFUAL <dbl>, LBXPFDO <dbl>, LBDPFDOL <dbl>,
-    ## #   LBXNFOA <dbl>, LBDNFOAL <dbl>, LBXBFOA <dbl>, LBDBFOAL <dbl>,
-    ## #   LBXNFOS <dbl>, LBDNFOSL <dbl>, LBXMFOS <dbl>, LBDMFOSL <dbl>,
-    ## #   file_name <chr>, begin_year <dbl>, end_year <dbl>
+    ## # ... with 2,160 more rows, and 64 more variables: ridreth3 <dbl>,
+    ## #   ridexmon <dbl>, ridexagm <dbl>, dmqmiliz <dbl>, dmqadfc <dbl>,
+    ## #   dmdborn4 <dbl>, dmdcitzn <dbl>, dmdyrsus <dbl>, dmdeduc3 <dbl>,
+    ## #   dmdeduc2 <dbl>, dmdmartl <dbl>, ridexprg <dbl>, sialang <dbl>,
+    ## #   siaproxy <dbl>, siaintrp <dbl>, fialang <dbl>, fiaproxy <dbl>,
+    ## #   fiaintrp <dbl>, mialang <dbl>, miaproxy <dbl>, miaintrp <dbl>,
+    ## #   aialanga <dbl>, dmdhhsiz <dbl>, dmdfmsiz <dbl>, dmdhhsza <dbl>,
+    ## #   dmdhhszb <dbl>, dmdhhsze <dbl>, dmdhrgnd <dbl>, dmdhrage <dbl>,
+    ## #   dmdhrbr4 <dbl>, dmdhredu <dbl>, dmdhrmar <dbl>, dmdhsedu <dbl>,
+    ## #   wtint2yr <dbl>, wtmec2yr <dbl>, sdmvpsu <dbl>, sdmvstra <dbl>,
+    ## #   indhhin2 <dbl>, indfmin2 <dbl>, indfmpir <dbl>, wtsb2yr <dbl>,
+    ## #   pfdea <dbl>, lbdpfdel <dbl>, pfhxs <dbl>, lbdpfhsl <dbl>,
+    ## #   me_pfosa_acoh <dbl>, lbdmpahl <dbl>, pfna <dbl>, lbdpfnal <dbl>,
+    ## #   pfua <dbl>, lbdpfual <dbl>, pfdoa <dbl>, lbdpfdol <dbl>, n_pfoa <dbl>,
+    ## #   lbdnfoal <dbl>, sb_pfoa <dbl>, lbdbfoal <dbl>, n_pfos <dbl>,
+    ## #   lbdnfosl <dbl>, sm_pfos <dbl>, lbdmfosl <dbl>, file_name <chr>,
+    ## #   begin_year <dbl>, end_year <dbl>
 
 ### Basic 2015-2016 PFAS summary table
 
 ``` r
 pfas_data %>%
-  select(SEQN, LBXPFDE, LBXPFHS, LBXMPAH,   LBXPFNA, LBXPFUA,   LBXPFDO, LBXNFOA,   LBXBFOA, LBXNFOS,   LBXMFOS) %>% 
-  gather(key = "analyte", value = "value", LBXPFDE:LBXMFOS) %>% 
+  select(seqn, pfdea, pfhxs, me_pfosa_acoh, pfna, pfua, pfdoa, n_pfoa, sb_pfoa, n_pfos, sm_pfos) %>% 
+  gather(key = "analyte", value = "value", pfdea:sm_pfos) %>% 
   group_by(analyte) %>% 
   na.omit() %>% 
   summarise(n = n(), 
@@ -176,25 +198,25 @@ pfas_data %>%
   knitr::kable(digits = 2)
 ```
 
-| analyte |     n|  mean|    sd|
-|:--------|-----:|-----:|-----:|
-| LBXBFOA |  1993|  0.07|  0.02|
-| LBXMFOS |  1993|  1.94|  1.88|
-| LBXMPAH |  1993|  0.17|  0.27|
-| LBXNFOA |  1993|  1.81|  1.63|
-| LBXNFOS |  1993|  5.10|  6.84|
-| LBXPFDE |  1993|  0.26|  0.45|
-| LBXPFDO |  1993|  0.07|  0.01|
-| LBXPFHS |  1993|  1.61|  1.75|
-| LBXPFNA |  1993|  0.78|  0.70|
-| LBXPFUA |  1993|  0.16|  0.26|
+| analyte         |     n|  mean|    sd|
+|:----------------|-----:|-----:|-----:|
+| me\_pfosa\_acoh |  1993|  0.17|  0.27|
+| n\_pfoa         |  1993|  1.81|  1.63|
+| n\_pfos         |  1993|  5.10|  6.84|
+| pfdea           |  1993|  0.26|  0.45|
+| pfdoa           |  1993|  0.07|  0.01|
+| pfhxs           |  1993|  1.61|  1.75|
+| pfna            |  1993|  0.78|  0.70|
+| pfua            |  1993|  0.16|  0.26|
+| sb\_pfoa        |  1993|  0.07|  0.02|
+| sm\_pfos        |  1993|  1.94|  1.88|
 
 ### PFAS Boxplot
 
 ``` r
 pfas_data %>%
-  select(SEQN, LBXPFDE, LBXPFHS, LBXMPAH,   LBXPFNA, LBXPFUA,   LBXPFDO, LBXNFOA,   LBXBFOA, LBXNFOS,   LBXMFOS) %>% 
-  gather(key = "analyte", value = "value", LBXPFDE:LBXMFOS) %>% 
+  select(seqn, pfdea, pfhxs, me_pfosa_acoh, pfna, pfua, pfdoa, n_pfoa, sb_pfoa, n_pfos, sm_pfos) %>% 
+  gather(key = "analyte", value = "value",  pfdea:sm_pfos) %>% 
   group_by(analyte) %>% 
   na.omit() %>% 
   ggplot(aes(x = analyte, y = value)) +
@@ -208,8 +230,8 @@ pfas_data %>%
 
 ``` r
 pfas_data %>%
-  select(SEQN, LBXPFDE, LBXPFHS, LBXMPAH,   LBXPFNA, LBXPFUA,   LBXPFDO, LBXNFOA,   LBXBFOA, LBXNFOS,   LBXMFOS) %>% 
-  gather(key = "analyte", value = "value", LBXPFDE:LBXMFOS) %>% 
+  select(seqn, pfdea, pfhxs, me_pfosa_acoh, pfna, pfua, pfdoa, n_pfoa, sb_pfoa, n_pfos, sm_pfos) %>% 
+  gather(key = "analyte", value = "value", pfdea:sm_pfos) %>% 
   group_by(analyte) %>% 
   na.omit() %>% 
   filter(value < 10) %>% 
@@ -226,8 +248,8 @@ pfas_data %>%
 
 ``` r
 pfas_data %>% 
-  ggplot(aes(x = LBXNFOA, y = LBXNFOS)) + 
-  geom_point(aes(color = RIAGENDR), alpha = .5) +
+  ggplot(aes(x = n_pfoa, y = n_pfos)) + 
+  geom_point(aes(color = riagendr), alpha = .5) +
   geom_smooth(se = TRUE) +
     scale_x_log10() +
     scale_y_log10()
@@ -243,8 +265,8 @@ pfas_data %>%
 
 ``` r
 pfas_data %>% 
-  ggplot(aes(x = RIDAGEYR, y = LBXNFOS)) + 
-  geom_point(aes(color = RIAGENDR), alpha = .5) +
+  ggplot(aes(x = ridageyr, y = n_pfos)) + 
+  geom_point(aes(color = riagendr), alpha = .5) +
   geom_smooth(se = TRUE) +
     scale_y_log10()
 ```

@@ -37,6 +37,7 @@ knitr::include_graphics("pfoa_studies.png")
 
 **IV**: Survey Questions: drinking water sources, drinking water consumption, canned goods, microwave popcorn, beauty and personal care products (including dental floss)
 
+
 **DV**: Serum PFAS concentrations (Outcome): PFDeA, PFHxS, Me-PFOSA-AcOH, PFNA, PFUA, PFDoA, n-PFOA, Sb-PFOA, n-PFOS, Sm-PFOS
 
 ### 2. Elevated PFAS concentrations contribute to higher BMI.
@@ -54,6 +55,9 @@ Potential confounders, effect modifiers, or co-variates of interest:
 * smoking status
 * household income
 * alcohol
+* waist circumference, 2 years of age and older
+* sagittal abdominal diameter, 8 years of age and older
+
 
 *References*: https://www.ncbi.nlm.nih.gov/pubmed/?term=PFAS+and+BMI 
 
@@ -106,6 +110,21 @@ files %>% count(component)
 ```
 
 
+## NHANES Dietary Interviews
+
+*Reference*: https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/DR1IFF_I.htm
+
+Detailed information about each food/beverage item (including the description, amount of, and nutrient content) reported by each participant is included in the Individual Foods files.
+
+* Drinking water variables:
+
+    + Total plain water drank yesterday (gm)
+    + Total tap water drank yesterday (gm)
+    + Total bottled water drank yesterday (gm)
+    + Tap water source
+
+* Fish consumption during past 30 days (by type) 
+
 ## PFAS
 
 
@@ -124,7 +143,10 @@ https://wwwn.cdc.gov/Nchs/Nhanes/2013-2014/PFAS_H.htm
 https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/PFAS_I.htm
 
 ```{r load_pfas, message = FALSE}
-pfas_data <- nhanes_load_data("PFAS_I", "2015-2016", demographics = TRUE)
+pfas_data <- nhanes_load_data("PFAS_I", "2015-2016", demographics = TRUE) %>% 
+  janitor::clean_names() %>% 
+  rename(pfdea = lbxpfde, pfhxs = lbxpfhs, me_pfosa_acoh = lbxmpah,	pfna = lbxpfna, pfua = lbxpfua,	pfdoa = lbxpfdo, n_pfoa = lbxnfoa,	sb_pfoa = lbxbfoa, n_pfos = lbxnfos,	sm_pfos = lbxmfos)
+  
 as_tibble(pfas_data)
 ```
 
@@ -133,8 +155,8 @@ as_tibble(pfas_data)
 ```{r summary_tables_with_NA, eval = FALSE, echo = FALSE}
 
 pfas_data %>%
-  select(SEQN, LBXPFDE, LBXPFHS, LBXMPAH,	LBXPFNA, LBXPFUA,	LBXPFDO, LBXNFOA,	LBXBFOA, LBXNFOS,	LBXMFOS) %>% 
-  gather(key = "analyte", value = "value", LBXPFDE:LBXMFOS) %>% 
+  select(seqn, pfdea, pfhxs, me_pfosa_acoh,	pfna, pfua,	pfdoa, n_pfoa, sb_pfoa, n_pfos,	sm_pfos) %>% 
+  gather(key = "analyte", value = "value", pfdea:sm_pfos) %>% 
   group_by(analyte) %>% 
   summarise(n = n(), 
             mean = mean(value, na.rm = TRUE),
@@ -148,8 +170,8 @@ pfas_data %>%
 ```{r summary_tables_remove_na}
 
 pfas_data %>%
-  select(SEQN, LBXPFDE, LBXPFHS, LBXMPAH,	LBXPFNA, LBXPFUA,	LBXPFDO, LBXNFOA,	LBXBFOA, LBXNFOS,	LBXMFOS) %>% 
-  gather(key = "analyte", value = "value", LBXPFDE:LBXMFOS) %>% 
+  select(seqn, pfdea, pfhxs, me_pfosa_acoh,	pfna, pfua,	pfdoa, n_pfoa, sb_pfoa, n_pfos,	sm_pfos) %>% 
+  gather(key = "analyte", value = "value", pfdea:sm_pfos) %>% 
   group_by(analyte) %>% 
   na.omit() %>% 
   summarise(n = n(), 
@@ -163,8 +185,8 @@ pfas_data %>%
 
 ```{r boxplot_untransformed, echo = FALSE, eval = FALSE}
 pfas_data %>%
-  select(SEQN, LBXPFDE, LBXPFHS, LBXMPAH,	LBXPFNA, LBXPFUA,	LBXPFDO, LBXNFOA,	LBXBFOA, LBXNFOS,	LBXMFOS) %>% 
-  gather(key = "analyte", value = "value", LBXPFDE:LBXMFOS) %>% 
+  select(seqn, pfdea, pfhxs, me_pfosa_acoh,	pfna, pfua,	pfdoa, n_pfoa, sb_pfoa, n_pfos,	sm_pfos) %>% 
+  gather(key = "analyte", value = "value", pfdea:sm_pfos) %>% 
   group_by(analyte) %>% 
   na.omit() %>% 
   ggplot(aes(x = analyte, y = value)) +
@@ -175,8 +197,8 @@ pfas_data %>%
 ```{r boxplot_log_scale}
 
 pfas_data %>%
-  select(SEQN, LBXPFDE, LBXPFHS, LBXMPAH,	LBXPFNA, LBXPFUA,	LBXPFDO, LBXNFOA,	LBXBFOA, LBXNFOS,	LBXMFOS) %>% 
-  gather(key = "analyte", value = "value", LBXPFDE:LBXMFOS) %>% 
+  select(seqn, pfdea, pfhxs, me_pfosa_acoh,	pfna, pfua,	pfdoa, n_pfoa, sb_pfoa, n_pfos,	sm_pfos) %>% 
+  gather(key = "analyte", value = "value",  pfdea:sm_pfos) %>% 
   group_by(analyte) %>% 
   na.omit() %>% 
   ggplot(aes(x = analyte, y = value)) +
@@ -194,8 +216,8 @@ pfas_data %>%
 ```{r ridge_plot}
 
 pfas_data %>%
-  select(SEQN, LBXPFDE, LBXPFHS, LBXMPAH,	LBXPFNA, LBXPFUA,	LBXPFDO, LBXNFOA,	LBXBFOA, LBXNFOS,	LBXMFOS) %>% 
-  gather(key = "analyte", value = "value", LBXPFDE:LBXMFOS) %>% 
+  select(seqn, pfdea, pfhxs, me_pfosa_acoh,	pfna, pfua,	pfdoa, n_pfoa, sb_pfoa, n_pfos,	sm_pfos) %>% 
+  gather(key = "analyte", value = "value", pfdea:sm_pfos) %>% 
   group_by(analyte) %>% 
   na.omit() %>% 
   filter(value < 10) %>% 
@@ -212,8 +234,8 @@ pfas_data %>%
 ### PFOS vs. PFOA scatterplot
 ```{r plot_pfoa_pfas, message = FALSE}
 pfas_data %>% 
-  ggplot(aes(x = LBXNFOA, y = LBXNFOS)) + 
-  geom_point(aes(color = RIAGENDR), alpha = .5) +
+  ggplot(aes(x = n_pfoa, y = n_pfos)) + 
+  geom_point(aes(color = riagendr), alpha = .5) +
   geom_smooth(se = TRUE) +
     scale_x_log10() +
     scale_y_log10()
@@ -222,8 +244,8 @@ pfas_data %>%
 ### PFOS vs age acatterplot
 ```{r plot pfos_age, message = FALSE}
 pfas_data %>% 
-  ggplot(aes(x = RIDAGEYR, y = LBXNFOS)) + 
-  geom_point(aes(color = RIAGENDR), alpha = .5) +
+  ggplot(aes(x = ridageyr, y = n_pfos)) + 
+  geom_point(aes(color = riagendr), alpha = .5) +
   geom_smooth(se = TRUE) +
     scale_y_log10()
 
