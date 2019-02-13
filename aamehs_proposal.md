@@ -122,32 +122,12 @@ files %>% count(component)
 PFAS
 ----
 
-Example of data loaded from multiple files/cycle years. Download all files that contain a "PFOS" variable.
-
-``` r
-?RNHANES::nhanes_search
-results <- nhanes_search(variables, "PFOS")
-results$cycle
-pfos <- nhanes_load_data(results$data_file_name, results$cycle, demographics = TRUE, recode = TRUE) #slow; large list, 9 elements, 12 MB
-
-pfos
-```
-
 ### Load and Inspect PFAS data
 
 NHANES Codebook References: <https://wwwn.cdc.gov/Nchs/Nhanes/2013-2014/PFAS_H.htm> <https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/PFAS_I.htm>
 
 ``` r
 pfas_data <- nhanes_load_data("PFAS_I", "2015-2016", demographics = TRUE)
-```
-
-    ## Downloading PFAS_I.XPT to C:\Users\slewa\AppData\Local\Temp\RtmpCODX5S/PFAS_I.XPT
-
-    ## Downloading DEMO_I.XPT to C:\Users\slewa\AppData\Local\Temp\RtmpCODX5S/DEMO_I.XPT
-
-    ## Caching CSV to C:\Users\slewa\AppData\Local\Temp\RtmpCODX5S/DEMO_I.csv
-
-``` r
 as_tibble(pfas_data)
 ```
 
@@ -184,33 +164,6 @@ as_tibble(pfas_data)
 
 ### Basic 2015-2016 PFAS summary table
 
-(drops `NA` values)
-
-``` r
-pfas_data %>%
-  select(SEQN, LBXPFDE, LBXPFHS, LBXMPAH,   LBXPFNA, LBXPFUA,   LBXPFDO, LBXNFOA,   LBXBFOA, LBXNFOS,   LBXMFOS) %>% 
-  gather(key = "analyte", value = "value", LBXPFDE:LBXMFOS) %>% 
-  group_by(analyte) %>% 
-  summarise(n = n(), 
-            mean = mean(value, na.rm = TRUE),
-            sd = sd(value, na.rm = TRUE),
-            na_count = sum(is.na(value))) %>%
-  knitr::kable(digits = 2)
-```
-
-| analyte |     n|  mean|    sd|  na\_count|
-|:--------|-----:|-----:|-----:|----------:|
-| LBXBFOA |  2170|  0.07|  0.02|        177|
-| LBXMFOS |  2170|  1.94|  1.88|        177|
-| LBXMPAH |  2170|  0.17|  0.27|        177|
-| LBXNFOA |  2170|  1.81|  1.63|        177|
-| LBXNFOS |  2170|  5.10|  6.84|        177|
-| LBXPFDE |  2170|  0.26|  0.45|        177|
-| LBXPFDO |  2170|  0.07|  0.01|        177|
-| LBXPFHS |  2170|  1.61|  1.75|        177|
-| LBXPFNA |  2170|  0.78|  0.70|        177|
-| LBXPFUA |  2170|  0.16|  0.26|        177|
-
 ``` r
 pfas_data %>%
   select(SEQN, LBXPFDE, LBXPFHS, LBXMPAH,   LBXPFNA, LBXPFUA,   LBXPFDO, LBXNFOA,   LBXBFOA, LBXNFOS,   LBXMFOS) %>% 
@@ -245,23 +198,11 @@ pfas_data %>%
   group_by(analyte) %>% 
   na.omit() %>% 
   ggplot(aes(x = analyte, y = value)) +
-    geom_boxplot() 
-```
-
-![](aamehs_proposal_files/figure-markdown_github/boxplot-1.png)
-
-``` r
-pfas_data %>%
-  select(SEQN, LBXPFDE, LBXPFHS, LBXMPAH,   LBXPFNA, LBXPFUA,   LBXPFDO, LBXNFOA,   LBXBFOA, LBXNFOS,   LBXMFOS) %>% 
-  gather(key = "analyte", value = "value", LBXPFDE:LBXMFOS) %>% 
-  group_by(analyte) %>% 
-  na.omit() %>% 
-  ggplot(aes(x = analyte, y = value)) +
     geom_boxplot() +
      scale_y_log10()
 ```
 
-![](aamehs_proposal_files/figure-markdown_github/boxplot-2.png)
+![](aamehs_proposal_files/figure-markdown_github/boxplot_log_scale-1.png)
 
 ### PFAS Ridge plot
 
@@ -323,11 +264,6 @@ NHANES Codebook References: <https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/BMX_I.ht
 
 ``` r
 bodymass_data <- nhanes_load_data("BMX_I", "2015-2016", demographics = TRUE)
-```
-
-    ## Downloading BMX_I.XPT to C:\Users\slewa\AppData\Local\Temp\RtmpCODX5S/BMX_I.XPT
-
-``` r
 as_tibble(bodymass_data)
 ```
 
@@ -366,15 +302,7 @@ as_tibble(bodymass_data)
 ### Inspect body mass data from 2015-2016
 
 ``` r
-bodymass_data %>%  nhanes_detection_frequency("BMXBMI", "BMXBMI", "WTMEC2YR") # not completely sure on weight
-```
-
-    ##       value     cycle begin_year end_year file_name column weights_column
-    ## 1 -26.28165 2015-2016       2015     2016     BMX_I BMXBMI       WTMEC2YR
-    ##   comment_column                name
-    ## 1         BMXBMI detection_frequency
-
-``` r
+# bodymass_data %>%  nhanes_detection_frequency("BMXBMI", "BMXBMI", "WTMEC2YR") # not completely sure on weight
 bodymass_data %>% nhanes_sample_size("BMXBMI", "BMXBMI", "WTMEC2YR")
 ```
 
@@ -386,14 +314,6 @@ bodymass_data %>% nhanes_sample_size("BMXBMI", "BMXBMI", "WTMEC2YR")
 ``` r
 bodymass_data %>%  nhanes_quantile("BMXBMI","BMXBMI", "WTMEC2YR", quantiles = c(0.5, 0.95))
 ```
-
-    ## Warning in callback(nhanes_data, ret): No detection limit found from the
-    ## summary tables. Falling back to inferring detection limit from the fill
-    ## value.
-
-    ## Warning in callback(nhanes_data, ret): Multiple detection limits were
-    ## found. Falling back to computing detection frequency to infer if a quantile
-    ## is below the limit of detection.
 
     ##   value     cycle begin_year end_year file_name column weights_column
     ## 1  26.6 2015-2016       2015     2016     BMX_I BMXBMI       WTMEC2YR
@@ -424,9 +344,5 @@ bodymass_data %>%
   geom_point(aes(color = RIAGENDR), alpha = .5) +
   geom_smooth(se = TRUE)
 ```
-
-    ## Warning: Removed 788 rows containing non-finite values (stat_smooth).
-
-    ## Warning: Removed 788 rows containing missing values (geom_point).
 
 ![](aamehs_proposal_files/figure-markdown_github/plot%20bmi_age-1.png)

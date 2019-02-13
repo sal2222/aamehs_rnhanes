@@ -82,7 +82,7 @@ https://www.r-bloggers.com/nhanes-made-simple-with-rnhanes/
 
 
 Install RNHANES package 
-```{r install_package}
+```{r install_package, message = FALSE}
 # library(devtools)
 # install_github("silentspringinstitute/RNHANES")
 ```
@@ -108,9 +108,9 @@ files %>% count(component)
 
 ## PFAS
 
-Example of data loaded from multiple files/cycle years. Download all files that contain a "PFOS" variable.
-```{r search_pfos, eval = FALSE}
-?RNHANES::nhanes_search
+
+```{r search_pfos, eval = FALSE, echo = FALSE}
+# Example of data loaded from multiple files/cycle years. Download all files that contain a "PFOS" variable.
 results <- nhanes_search(variables, "PFOS")
 results$cycle
 pfos <- nhanes_load_data(results$data_file_name, results$cycle, demographics = TRUE, recode = TRUE) #slow; large list, 9 elements, 12 MB
@@ -123,14 +123,14 @@ NHANES Codebook References:
 https://wwwn.cdc.gov/Nchs/Nhanes/2013-2014/PFAS_H.htm
 https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/PFAS_I.htm
 
-```{r load_pfas}
+```{r load_pfas, message = FALSE}
 pfas_data <- nhanes_load_data("PFAS_I", "2015-2016", demographics = TRUE)
 as_tibble(pfas_data)
 ```
 
 ###Basic 2015-2016 PFAS summary table
-(drops `NA` values)
-```{r summary_tables}
+
+```{r summary_tables_with_NA, eval = FALSE, echo = FALSE}
 
 pfas_data %>%
   select(SEQN, LBXPFDE, LBXPFHS, LBXMPAH,	LBXPFNA, LBXPFUA,	LBXPFDO, LBXNFOA,	LBXBFOA, LBXNFOS,	LBXMFOS) %>% 
@@ -142,6 +142,10 @@ pfas_data %>%
             na_count = sum(is.na(value))) %>%
   knitr::kable(digits = 2)
 
+```
+
+
+```{r summary_tables_remove_na}
 
 pfas_data %>%
   select(SEQN, LBXPFDE, LBXPFHS, LBXMPAH,	LBXPFNA, LBXPFUA,	LBXPFDO, LBXNFOA,	LBXBFOA, LBXNFOS,	LBXMFOS) %>% 
@@ -157,7 +161,7 @@ pfas_data %>%
 
 ### PFAS Boxplot
 
-```{r boxplot}
+```{r boxplot_untransformed, echo = FALSE, eval = FALSE}
 pfas_data %>%
   select(SEQN, LBXPFDE, LBXPFHS, LBXMPAH,	LBXPFNA, LBXPFUA,	LBXPFDO, LBXNFOA,	LBXBFOA, LBXNFOS,	LBXMFOS) %>% 
   gather(key = "analyte", value = "value", LBXPFDE:LBXMFOS) %>% 
@@ -166,6 +170,9 @@ pfas_data %>%
   ggplot(aes(x = analyte, y = value)) +
     geom_boxplot() 
 
+```
+
+```{r boxplot_log_scale}
 
 pfas_data %>%
   select(SEQN, LBXPFDE, LBXPFHS, LBXMPAH,	LBXPFNA, LBXPFUA,	LBXPFDO, LBXNFOA,	LBXBFOA, LBXNFOS,	LBXMFOS) %>% 
@@ -176,6 +183,12 @@ pfas_data %>%
     geom_boxplot() +
      scale_y_log10()
 ```
+
+
+
+
+
+
 
 ### PFAS Ridge plot
 ```{r ridge_plot}
@@ -223,14 +236,14 @@ https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/BMX_I.htm
 
 ### Load and Inspect BMI data
 
-```{r load body mass data}
+```{r load body mass data, message = FALSE}
 bodymass_data <- nhanes_load_data("BMX_I", "2015-2016", demographics = TRUE)
 as_tibble(bodymass_data)
 ```
 
 ### Inspect body mass data from 2015-2016
-```{r examine_bmi}
-bodymass_data %>%  nhanes_detection_frequency("BMXBMI", "BMXBMI", "WTMEC2YR") # not completely sure on weight
+```{r examine_bmi, warning = FALSE, message = FALSE}
+# bodymass_data %>%  nhanes_detection_frequency("BMXBMI", "BMXBMI", "WTMEC2YR") # not completely sure on weight
 bodymass_data %>% nhanes_sample_size("BMXBMI", "BMXBMI", "WTMEC2YR")
 bodymass_data %>%  nhanes_quantile("BMXBMI","BMXBMI", "WTMEC2YR", quantiles = c(0.5, 0.95))
 ```
@@ -243,7 +256,7 @@ bodymass_data %>%  nhanes_hist("BMXBMI", "BMXBMI", "WTMEC2YR", transform = "log"
 ```
 
 ### BMI Scatterplot
-```{r plot bmi_age, message = FALSE}
+```{r plot bmi_age, message = FALSE, warning = FALSE}
 bodymass_data %>% 
   ggplot(aes(x = RIDAGEYR, y = BMXBMI)) + 
   geom_point(aes(color = RIAGENDR), alpha = .5) +
