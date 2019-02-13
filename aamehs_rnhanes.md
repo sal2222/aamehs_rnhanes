@@ -17,11 +17,6 @@ Install RNHANES package (first time - need development version for most recent c
 
 ``` r
 library(tidyverse)
-```
-
-    ## Warning: package 'dplyr' was built under R version 3.5.2
-
-``` r
 library(RNHANES)
 ```
 
@@ -240,11 +235,11 @@ NHANES Codebook References: <https://wwwn.cdc.gov/Nchs/Nhanes/2013-2014/PFAS_H.h
 pfas_data <- nhanes_load_data("PFAS_I", "2015-2016", demographics = TRUE)
 ```
 
-    ## Downloading PFAS_I.XPT to C:\Users\jenni\AppData\Local\Temp\Rtmpw1qMri/PFAS_I.XPT
+    ## Downloading PFAS_I.XPT to C:\Users\slewa\AppData\Local\Temp\RtmpsTgdAB/PFAS_I.XPT
 
-    ## Downloading DEMO_I.XPT to C:\Users\jenni\AppData\Local\Temp\Rtmpw1qMri/DEMO_I.XPT
+    ## Downloading DEMO_I.XPT to C:\Users\slewa\AppData\Local\Temp\RtmpsTgdAB/DEMO_I.XPT
 
-    ## Caching CSV to C:\Users\jenni\AppData\Local\Temp\Rtmpw1qMri/DEMO_I.csv
+    ## Caching CSV to C:\Users\slewa\AppData\Local\Temp\RtmpsTgdAB/DEMO_I.csv
 
 ``` r
 as_tibble(pfas_data)
@@ -375,7 +370,7 @@ NHANES Codebook References: <https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/BMX_I.ht
 bodymass_data <- nhanes_load_data("BMX_I", "2015-2016", demographics = TRUE)
 ```
 
-    ## Downloading BMX_I.XPT to C:\Users\jenni\AppData\Local\Temp\Rtmpw1qMri/BMX_I.XPT
+    ## Downloading BMX_I.XPT to C:\Users\slewa\AppData\Local\Temp\RtmpsTgdAB/BMX_I.XPT
 
 ``` r
 as_tibble(bodymass_data)

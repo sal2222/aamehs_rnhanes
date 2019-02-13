@@ -1,19 +1,36 @@
 aamehs\_proposal
 ================
-Team LSD
-February 7, 2019
+Team LSD: Adnan, Jenni, Stephen
+February 13, 2019
 
-Per- and polyfluoroalkyl substances (PFAS)
-==========================================
+-   [Per- and polyfluoroalkyl substances (PFAS) and Body Mass](#per--and-polyfluoroalkyl-substances-pfas-and-body-mass)
+    -   [Background](#background)
+    -   [Hypotheses](#hypotheses)
+        -   [1. Water and food consumption and consumer product use influence PFAS serum concentrations.](#water-and-food-consumption-and-consumer-product-use-influence-pfas-serum-concentrations.)
+        -   [2. Elevated PFAS concentrations contribute to higher BMI.](#elevated-pfas-concentrations-contribute-to-higher-bmi.)
+        -   [3. Serum PFAS levels serve as a mediator between water/food consumption and body mass.](#serum-pfas-levels-serve-as-a-mediator-between-waterfood-consumption-and-body-mass.)
+        -   [Additional: PFAS levels are associated with other chemicals in serum which are common pollutants at industrial sites or airfields](#additional-pfas-levels-are-associated-with-other-chemicals-in-serum-which-are-common-pollutants-at-industrial-sites-or-airfields)
+    -   [Data Source: NHANES](#data-source-nhanes)
+    -   [PFAS](#pfas)
+        -   [Load and Inspect PFAS data](#load-and-inspect-pfas-data)
+        -   [Basic 2015-2016 PFAS summary table](#basic-2015-2016-pfas-summary-table)
+        -   [PFAS Boxplot](#pfas-boxplot)
+        -   [PFAS Ridge plot](#pfas-ridge-plot)
+        -   [PFOS vs. PFOA scatterplot](#pfos-vs.-pfoa-scatterplot)
+        -   [PFOS vs age acatterplot](#pfos-vs-age-acatterplot)
+    -   [Body Mass](#body-mass)
+        -   [Load and Inspect BMI data](#load-and-inspect-bmi-data)
+        -   [Inspect body mass data from 2015-2016](#inspect-body-mass-data-from-2015-2016)
+        -   [BMI Histogram, log transformed](#bmi-histogram-log-transformed)
+        -   [BMI Scatterplot](#bmi-scatterplot)
+
+Per- and polyfluoroalkyl substances (PFAS) and Body Mass
+========================================================
 
 Background
 ----------
 
 Per- and polyfluoroalkyl substances (PFAS) are human-made compounds that have been used commercially and industrially for over sixty years due to their ability to repel oil and water, withstand elevated temperatures, and resist chemical reactions \[1\]. Of the thousands of different PFAS compounds, perfluorooctanoic acid (PFOA) and perfluorooctane sulfonate (PFOS) are the most studied. PFASs are used in stain-resistant coatings for upholstery and carpeting, water-resistant breathable clothing, greaseproof food packaging, in the manufacturing process of non-stick cookware, and in aqueous film-forming foams (AFFF) – used to fight petroleum fires at commercial airports and military airfields. These chemicals are extremely persistent in the environment and have been detected in the blood of nearly all sampled Americans \[2\]. Exposure to PFASs may increase risk of pregnancy-induced hypertension, liver damage, higher cholesterol, thyroid disease, asthma, decreased vaccine antibody response, decreased fertility, and decreased birth weight \[3\].
-
-``` r
-knitr::include_graphics("pfoa_studies.png")
-```
 
 <img src="pfoa_studies.png" alt="Overview of the Number of Studies Examining PFOA Health Effects (ATSDR, June 2018)" width="980" />
 <p class="caption">
@@ -29,19 +46,38 @@ Hypotheses
 
 ### 1. Water and food consumption and consumer product use influence PFAS serum concentrations.
 
-IV: Survey Questions: drinking water sources, drinking water consumption, canned goods, microwave popcorn, beauty and personal care products (including dental floss)
+**IV**: Survey Questions: drinking water sources, drinking water consumption, canned goods, microwave popcorn, beauty and personal care products (including dental floss)
 
-DV: Serum PFAS concentrations (Outcome): PFDeA, PFHxS, Me-PFOSA-AcOH, PFNA, PFUA, PFDoA, n-PFOA, Sb-PFOA, n-PFOS, Sm-PFOS
+**DV**: Serum PFAS concentrations (Outcome): PFDeA, PFHxS, Me-PFOSA-AcOH, PFNA, PFUA, PFDoA, n-PFOA, Sb-PFOA, n-PFOS, Sm-PFOS
 
 ### 2. Elevated PFAS concentrations contribute to higher BMI.
 
-IV: Serum PFAS concentrations (Outcome): PFDeA, PFHxS, Me-PFOSA-AcOH, PFNA, PFUA, PFDoA, n-PFOA, Sb-PFOA, n-PFOS, Sm-PFOS
+**IV**: Serum PFAS concentrations (Outcome): PFDeA, PFHxS, Me-PFOSA-AcOH, PFNA, PFUA, PFDoA, n-PFOA, Sb-PFOA, n-PFOS, Sm-PFOS
 
-DV: Body weight, BMI
+**DV**: Body weight, BMI
 
-### 3. PFAS levels are associated with other chemicals in serum which are common pollutants at industrial sites or airfields (e.g. solvents, fuels/petroleum/oil/lubricants)
+Potential confounders, effect modifiers, or co-variates of interest:
 
-Independent Variables: ID solvents, POLs
+-   age
+-   gestational diabetes
+-   pre-diabetes / diabetes
+-   sex
+-   smoking status
+-   household income
+-   alcohol
+
+*References*: <https://www.ncbi.nlm.nih.gov/pubmed/?term=PFAS+and+BMI>
+
+### 3. Serum PFAS levels serve as a mediator between water/food consumption and body mass.
+
+**DAG**:
+
+water/food/product use (exposure) --&gt; PFAS serum concentrations (internal dose) --&gt; increased body mass (biological effect)
+
+### Additional: PFAS levels are associated with other chemicals in serum which are common pollutants at industrial sites or airfields
+
+IV: solvents, fuels/petroleum/oil/lubricants
+DV: PFAS serum concentrations
 
 Data Source: NHANES
 -------------------
@@ -83,8 +119,8 @@ files %>% count(component)
     ## 4 laboratory      643
     ## 5 questionnaire   438
 
-Download data files
--------------------
+PFAS
+----
 
 Example of data loaded from multiple files/cycle years. Download all files that contain a "PFOS" variable.
 
@@ -97,8 +133,7 @@ pfos <- nhanes_load_data(results$data_file_name, results$cycle, demographics = T
 pfos
 ```
 
-Load and Inspect PFAS data
---------------------------
+### Load and Inspect PFAS data
 
 NHANES Codebook References: <https://wwwn.cdc.gov/Nchs/Nhanes/2013-2014/PFAS_H.htm> <https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/PFAS_I.htm>
 
@@ -106,11 +141,11 @@ NHANES Codebook References: <https://wwwn.cdc.gov/Nchs/Nhanes/2013-2014/PFAS_H.h
 pfas_data <- nhanes_load_data("PFAS_I", "2015-2016", demographics = TRUE)
 ```
 
-    ## Downloading PFAS_I.XPT to C:\Users\slewa\AppData\Local\Temp\RtmpOIgvJc/PFAS_I.XPT
+    ## Downloading PFAS_I.XPT to C:\Users\slewa\AppData\Local\Temp\RtmpCODX5S/PFAS_I.XPT
 
-    ## Downloading DEMO_I.XPT to C:\Users\slewa\AppData\Local\Temp\RtmpOIgvJc/DEMO_I.XPT
+    ## Downloading DEMO_I.XPT to C:\Users\slewa\AppData\Local\Temp\RtmpCODX5S/DEMO_I.XPT
 
-    ## Caching CSV to C:\Users\slewa\AppData\Local\Temp\RtmpOIgvJc/DEMO_I.csv
+    ## Caching CSV to C:\Users\slewa\AppData\Local\Temp\RtmpCODX5S/DEMO_I.csv
 
 ``` r
 as_tibble(pfas_data)
@@ -201,8 +236,7 @@ pfas_data %>%
 | LBXPFNA |  1993|  0.78|  0.70|
 | LBXPFUA |  1993|  0.16|  0.26|
 
-Boxplots
---------
+### PFAS Boxplot
 
 ``` r
 pfas_data %>%
@@ -229,7 +263,7 @@ pfas_data %>%
 
 ![](aamehs_proposal_files/figure-markdown_github/boxplot-2.png)
 
-### Ridge plot
+### PFAS Ridge plot
 
 ``` r
 pfas_data %>%
@@ -279,3 +313,120 @@ pfas_data %>%
     ## Warning: Removed 177 rows containing missing values (geom_point).
 
 ![](aamehs_proposal_files/figure-markdown_github/plot%20pfos_age-1.png)
+
+Body Mass
+---------
+
+NHANES Codebook References: <https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/BMX_I.htm>
+
+### Load and Inspect BMI data
+
+``` r
+bodymass_data <- nhanes_load_data("BMX_I", "2015-2016", demographics = TRUE)
+```
+
+    ## Downloading BMX_I.XPT to C:\Users\slewa\AppData\Local\Temp\RtmpCODX5S/BMX_I.XPT
+
+``` r
+as_tibble(bodymass_data)
+```
+
+    ## # A tibble: 9,544 x 76
+    ##     SEQN cycle SDDSRVYR RIDSTATR RIAGENDR RIDAGEYR RIDAGEMN RIDRETH1
+    ##    <int> <chr>    <int>    <int>    <int>    <int>    <int>    <int>
+    ##  1 83732 2015~        9        2        1       62       NA        3
+    ##  2 83733 2015~        9        2        1       53       NA        3
+    ##  3 83734 2015~        9        2        1       78       NA        3
+    ##  4 83735 2015~        9        2        2       56       NA        3
+    ##  5 83736 2015~        9        2        2       42       NA        4
+    ##  6 83737 2015~        9        2        2       72       NA        1
+    ##  7 83738 2015~        9        2        2       11       NA        1
+    ##  8 83739 2015~        9        2        1        4       NA        3
+    ##  9 83740 2015~        9        2        1        1       13        2
+    ## 10 83741 2015~        9        2        1       22       NA        4
+    ## # ... with 9,534 more rows, and 68 more variables: RIDRETH3 <int>,
+    ## #   RIDEXMON <int>, RIDEXAGM <int>, DMQMILIZ <int>, DMQADFC <int>,
+    ## #   DMDBORN4 <int>, DMDCITZN <int>, DMDYRSUS <int>, DMDEDUC3 <int>,
+    ## #   DMDEDUC2 <int>, DMDMARTL <int>, RIDEXPRG <int>, SIALANG <int>,
+    ## #   SIAPROXY <int>, SIAINTRP <int>, FIALANG <int>, FIAPROXY <int>,
+    ## #   FIAINTRP <int>, MIALANG <int>, MIAPROXY <int>, MIAINTRP <int>,
+    ## #   AIALANGA <int>, DMDHHSIZ <int>, DMDFMSIZ <int>, DMDHHSZA <int>,
+    ## #   DMDHHSZB <int>, DMDHHSZE <int>, DMDHRGND <int>, DMDHRAGE <int>,
+    ## #   DMDHRBR4 <int>, DMDHREDU <int>, DMDHRMAR <int>, DMDHSEDU <int>,
+    ## #   WTINT2YR <dbl>, WTMEC2YR <dbl>, SDMVPSU <int>, SDMVSTRA <int>,
+    ## #   INDHHIN2 <int>, INDFMIN2 <int>, INDFMPIR <dbl>, BMDSTATS <dbl>,
+    ## #   BMXWT <dbl>, BMIWT <dbl>, BMXRECUM <dbl>, BMIRECUM <dbl>,
+    ## #   BMXHEAD <dbl>, BMIHEAD <dbl>, BMXHT <dbl>, BMIHT <dbl>, BMXBMI <dbl>,
+    ## #   BMDBMIC <dbl>, BMXLEG <dbl>, BMILEG <dbl>, BMXARML <dbl>,
+    ## #   BMIARML <dbl>, BMXARMC <dbl>, BMIARMC <dbl>, BMXWAIST <dbl>,
+    ## #   BMIWAIST <dbl>, BMXSAD1 <dbl>, BMXSAD2 <dbl>, BMXSAD3 <dbl>,
+    ## #   BMXSAD4 <dbl>, BMDAVSAD <dbl>, BMDSADCM <dbl>, file_name <chr>,
+    ## #   begin_year <dbl>, end_year <dbl>
+
+### Inspect body mass data from 2015-2016
+
+``` r
+bodymass_data %>%  nhanes_detection_frequency("BMXBMI", "BMXBMI", "WTMEC2YR") # not completely sure on weight
+```
+
+    ##       value     cycle begin_year end_year file_name column weights_column
+    ## 1 -26.28165 2015-2016       2015     2016     BMX_I BMXBMI       WTMEC2YR
+    ##   comment_column                name
+    ## 1         BMXBMI detection_frequency
+
+``` r
+bodymass_data %>% nhanes_sample_size("BMXBMI", "BMXBMI", "WTMEC2YR")
+```
+
+    ##   value     cycle begin_year end_year file_name column weights_column
+    ## 1  8756 2015-2016       2015     2016     BMX_I BMXBMI       WTMEC2YR
+    ##   comment_column        name
+    ## 1         BMXBMI sample size
+
+``` r
+bodymass_data %>%  nhanes_quantile("BMXBMI","BMXBMI", "WTMEC2YR", quantiles = c(0.5, 0.95))
+```
+
+    ## Warning in callback(nhanes_data, ret): No detection limit found from the
+    ## summary tables. Falling back to inferring detection limit from the fill
+    ## value.
+
+    ## Warning in callback(nhanes_data, ret): Multiple detection limits were
+    ## found. Falling back to computing detection frequency to infer if a quantile
+    ## is below the limit of detection.
+
+    ##   value     cycle begin_year end_year file_name column weights_column
+    ## 1  26.6 2015-2016       2015     2016     BMX_I BMXBMI       WTMEC2YR
+    ## 2  41.3 2015-2016       2015     2016     BMX_I BMXBMI       WTMEC2YR
+    ##   comment_column below_lod quantile     name
+    ## 1         BMXBMI     FALSE      50% quantile
+    ## 2         BMXBMI     FALSE      95% quantile
+
+### BMI Histogram, log transformed
+
+``` r
+bodymass_data %>%  nhanes_hist("BMXBMI", "BMXBMI", "WTMEC2YR")
+```
+
+![](aamehs_proposal_files/figure-markdown_github/bmi_hist-1.png)
+
+``` r
+bodymass_data %>%  nhanes_hist("BMXBMI", "BMXBMI", "WTMEC2YR", transform = "log")
+```
+
+![](aamehs_proposal_files/figure-markdown_github/bmi_hist-2.png)
+
+### BMI Scatterplot
+
+``` r
+bodymass_data %>% 
+  ggplot(aes(x = RIDAGEYR, y = BMXBMI)) + 
+  geom_point(aes(color = RIAGENDR), alpha = .5) +
+  geom_smooth(se = TRUE)
+```
+
+    ## Warning: Removed 788 rows containing non-finite values (stat_smooth).
+
+    ## Warning: Removed 788 rows containing missing values (geom_point).
+
+![](aamehs_proposal_files/figure-markdown_github/plot%20bmi_age-1.png)
