@@ -110,3 +110,35 @@ pfas_data %>%
 
 ```
 
+
+## Load and Inspect BMI data
+
+NHANES Codebook References:
+https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/BMX_I.htm
+
+```{r load body mass data}
+bodymass_data <- nhanes_load_data("BMX_I", "2015-2016", demographics = TRUE)
+as_tibble(bodymass_data)
+```
+
+Inspect body mass data from 2015-2016
+```{r examine_bmi}
+bodymass_data %>%  nhanes_detection_frequency("BMXBMI", "BMXBMI", "WTMEC2YR") # not completely sure on weight
+bodymass_data %>% nhanes_sample_size("BMXBMI", "BMXBMI", "WTMEC2YR")
+bodymass_data %>%  nhanes_quantile("BMXBMI","BMXBMI", "WTMEC2YR", quantiles = c(0.5, 0.95))
+```
+
+Histogram, log transformed
+```{r bmi_hist}
+bodymass_data %>%  nhanes_hist("BMXBMI", "BMXBMI", "WTMEC2YR")
+bodymass_data %>%  nhanes_hist("BMXBMI", "BMXBMI", "WTMEC2YR", transform = "log")
+
+```
+
+```{r plot bmi_age, message = FALSE}
+bodymass_data %>% 
+  ggplot(aes(x = RIDAGEYR, y = BMXBMI)) + 
+  geom_point(aes(color = RIAGENDR), alpha = .5) +
+  geom_smooth(se = TRUE)
+
+```

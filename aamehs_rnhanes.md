@@ -17,6 +17,11 @@ Install RNHANES package (first time - need development version for most recent c
 
 ``` r
 library(tidyverse)
+```
+
+    ## Warning: package 'dplyr' was built under R version 3.5.2
+
+``` r
 library(RNHANES)
 ```
 
@@ -235,11 +240,11 @@ NHANES Codebook References: <https://wwwn.cdc.gov/Nchs/Nhanes/2013-2014/PFAS_H.h
 pfas_data <- nhanes_load_data("PFAS_I", "2015-2016", demographics = TRUE)
 ```
 
-    ## Downloading PFAS_I.XPT to C:\Users\slewa\AppData\Local\Temp\RtmpsHNxy5/PFAS_I.XPT
+    ## Downloading PFAS_I.XPT to C:\Users\jenni\AppData\Local\Temp\Rtmpw1qMri/PFAS_I.XPT
 
-    ## Downloading DEMO_I.XPT to C:\Users\slewa\AppData\Local\Temp\RtmpsHNxy5/DEMO_I.XPT
+    ## Downloading DEMO_I.XPT to C:\Users\jenni\AppData\Local\Temp\Rtmpw1qMri/DEMO_I.XPT
 
-    ## Caching CSV to C:\Users\slewa\AppData\Local\Temp\RtmpsHNxy5/DEMO_I.csv
+    ## Caching CSV to C:\Users\jenni\AppData\Local\Temp\Rtmpw1qMri/DEMO_I.csv
 
 ``` r
 as_tibble(pfas_data)
@@ -360,3 +365,116 @@ pfas_data %>%
     ## Warning: Removed 177 rows containing missing values (geom_point).
 
 ![](aamehs_rnhanes_files/figure-markdown_github/plot%20pfos_age-1.png)
+
+Load and Inspect BMI data
+-------------------------
+
+NHANES Codebook References: <https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/BMX_I.htm>
+
+``` r
+bodymass_data <- nhanes_load_data("BMX_I", "2015-2016", demographics = TRUE)
+```
+
+    ## Downloading BMX_I.XPT to C:\Users\jenni\AppData\Local\Temp\Rtmpw1qMri/BMX_I.XPT
+
+``` r
+as_tibble(bodymass_data)
+```
+
+    ## # A tibble: 9,544 x 76
+    ##     SEQN cycle SDDSRVYR RIDSTATR RIAGENDR RIDAGEYR RIDAGEMN RIDRETH1
+    ##    <int> <chr>    <int>    <int>    <int>    <int>    <int>    <int>
+    ##  1 83732 2015~        9        2        1       62       NA        3
+    ##  2 83733 2015~        9        2        1       53       NA        3
+    ##  3 83734 2015~        9        2        1       78       NA        3
+    ##  4 83735 2015~        9        2        2       56       NA        3
+    ##  5 83736 2015~        9        2        2       42       NA        4
+    ##  6 83737 2015~        9        2        2       72       NA        1
+    ##  7 83738 2015~        9        2        2       11       NA        1
+    ##  8 83739 2015~        9        2        1        4       NA        3
+    ##  9 83740 2015~        9        2        1        1       13        2
+    ## 10 83741 2015~        9        2        1       22       NA        4
+    ## # ... with 9,534 more rows, and 68 more variables: RIDRETH3 <int>,
+    ## #   RIDEXMON <int>, RIDEXAGM <int>, DMQMILIZ <int>, DMQADFC <int>,
+    ## #   DMDBORN4 <int>, DMDCITZN <int>, DMDYRSUS <int>, DMDEDUC3 <int>,
+    ## #   DMDEDUC2 <int>, DMDMARTL <int>, RIDEXPRG <int>, SIALANG <int>,
+    ## #   SIAPROXY <int>, SIAINTRP <int>, FIALANG <int>, FIAPROXY <int>,
+    ## #   FIAINTRP <int>, MIALANG <int>, MIAPROXY <int>, MIAINTRP <int>,
+    ## #   AIALANGA <int>, DMDHHSIZ <int>, DMDFMSIZ <int>, DMDHHSZA <int>,
+    ## #   DMDHHSZB <int>, DMDHHSZE <int>, DMDHRGND <int>, DMDHRAGE <int>,
+    ## #   DMDHRBR4 <int>, DMDHREDU <int>, DMDHRMAR <int>, DMDHSEDU <int>,
+    ## #   WTINT2YR <dbl>, WTMEC2YR <dbl>, SDMVPSU <int>, SDMVSTRA <int>,
+    ## #   INDHHIN2 <int>, INDFMIN2 <int>, INDFMPIR <dbl>, BMDSTATS <dbl>,
+    ## #   BMXWT <dbl>, BMIWT <dbl>, BMXRECUM <dbl>, BMIRECUM <dbl>,
+    ## #   BMXHEAD <dbl>, BMIHEAD <dbl>, BMXHT <dbl>, BMIHT <dbl>, BMXBMI <dbl>,
+    ## #   BMDBMIC <dbl>, BMXLEG <dbl>, BMILEG <dbl>, BMXARML <dbl>,
+    ## #   BMIARML <dbl>, BMXARMC <dbl>, BMIARMC <dbl>, BMXWAIST <dbl>,
+    ## #   BMIWAIST <dbl>, BMXSAD1 <dbl>, BMXSAD2 <dbl>, BMXSAD3 <dbl>,
+    ## #   BMXSAD4 <dbl>, BMDAVSAD <dbl>, BMDSADCM <dbl>, file_name <chr>,
+    ## #   begin_year <dbl>, end_year <dbl>
+
+Inspect body mass data from 2015-2016
+
+``` r
+bodymass_data %>%  nhanes_detection_frequency("BMXBMI", "BMXBMI", "WTMEC2YR") # not completely sure on weight
+```
+
+    ##       value     cycle begin_year end_year file_name column weights_column
+    ## 1 -26.28165 2015-2016       2015     2016     BMX_I BMXBMI       WTMEC2YR
+    ##   comment_column                name
+    ## 1         BMXBMI detection_frequency
+
+``` r
+bodymass_data %>% nhanes_sample_size("BMXBMI", "BMXBMI", "WTMEC2YR")
+```
+
+    ##   value     cycle begin_year end_year file_name column weights_column
+    ## 1  8756 2015-2016       2015     2016     BMX_I BMXBMI       WTMEC2YR
+    ##   comment_column        name
+    ## 1         BMXBMI sample size
+
+``` r
+bodymass_data %>%  nhanes_quantile("BMXBMI","BMXBMI", "WTMEC2YR", quantiles = c(0.5, 0.95))
+```
+
+    ## Warning in callback(nhanes_data, ret): No detection limit found from the
+    ## summary tables. Falling back to inferring detection limit from the fill
+    ## value.
+
+    ## Warning in callback(nhanes_data, ret): Multiple detection limits were
+    ## found. Falling back to computing detection frequency to infer if a quantile
+    ## is below the limit of detection.
+
+    ##   value     cycle begin_year end_year file_name column weights_column
+    ## 1  26.6 2015-2016       2015     2016     BMX_I BMXBMI       WTMEC2YR
+    ## 2  41.3 2015-2016       2015     2016     BMX_I BMXBMI       WTMEC2YR
+    ##   comment_column below_lod quantile     name
+    ## 1         BMXBMI     FALSE      50% quantile
+    ## 2         BMXBMI     FALSE      95% quantile
+
+Histogram, log transformed
+
+``` r
+bodymass_data %>%  nhanes_hist("BMXBMI", "BMXBMI", "WTMEC2YR")
+```
+
+![](aamehs_rnhanes_files/figure-markdown_github/bmi_hist-1.png)
+
+``` r
+bodymass_data %>%  nhanes_hist("BMXBMI", "BMXBMI", "WTMEC2YR", transform = "log")
+```
+
+![](aamehs_rnhanes_files/figure-markdown_github/bmi_hist-2.png)
+
+``` r
+bodymass_data %>% 
+  ggplot(aes(x = RIDAGEYR, y = BMXBMI)) + 
+  geom_point(aes(color = RIAGENDR), alpha = .5) +
+  geom_smooth(se = TRUE)
+```
+
+    ## Warning: Removed 788 rows containing non-finite values (stat_smooth).
+
+    ## Warning: Removed 788 rows containing missing values (geom_point).
+
+![](aamehs_rnhanes_files/figure-markdown_github/plot%20bmi_age-1.png)
