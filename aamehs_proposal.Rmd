@@ -69,6 +69,12 @@ Potential confounders, effect modifiers, or co-variates of interest:
 water/food/product use (exposure) --> PFAS serum concentrations (internal dose) --> increased body mass (biological effect)  
 
 
+```{r dag_image, fig.cap = "Draft DAG", echo = FALSE}
+knitr::include_graphics("initial_dag.jpg")
+```
+
+
+
 
 ### Additional: PFAS levels are associated with other chemicals in serum which are common pollutants at industrial sites or airfields 
 
