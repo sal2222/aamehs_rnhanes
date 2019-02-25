@@ -50,22 +50,11 @@ water/food/product use (exposure) --> PFAS serum concentrations (internal dose) 
 
 
 ```{r packages, message = FALSE}
+
 library(tidyverse)
 library(RNHANES)
 library(survey)
-```
 
-
-NHANES files and the comprehensive variable list
-```{r load_file_names, cache = TRUE, message = FALSE}
-files <- nhanes_data_files()  #1,328 obs of 10 variables
-variables <- nhanes_variables()  #48,398 obs of 10 variables
-
-```
-
-```{r explore_files}
-files %>% count(cycle) %>% View
-files %>% count(component)
 ```
 
 
@@ -94,9 +83,9 @@ https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/PFAS_I.htm
 ```{r load_pfas, message = FALSE}
 
  
-pfas_data <- nhanes_load_data("PFAS_I", "2015-2016", demographics = TRUE)
+pfas_load <- nhanes_load_data("PFAS_I", "2015-2016", demographics = TRUE)
 
-pfas_survey <- nhanes_survey_design(pfas_data, "WTSB2YR")
+pfas_survey <- nhanes_survey_design(pfas_load, "WTSB2YR")
 
 pfas_data <- nhanes_load_data("PFAS_I", "2015-2016", demographics = TRUE) %>% 
   janitor::clean_names() %>% 
@@ -110,107 +99,75 @@ pfas_data <- nhanes_load_data("PFAS_I", "2015-2016", demographics = TRUE) %>%
 
 ```{r summary_tables_remove_na}
 
-pfas_data %>%
-  select(seqn, pfdea, pfhxs, me_pfosa_acoh,	pfna, pfua,	pfdoa, n_pfoa, sb_pfoa, n_pfos,	sm_pfos) %>% 
-  gather(key = "analyte", value = "value", pfdea:sm_pfos) %>% 
-  group_by(analyte) %>% 
-  na.omit() %>% 
-  summarise(n = n(), 
-            mean = mean(value),
-            sd = sd(value)) %>%
-  knitr::kable(digits = 2)
+#pfas_summary <-
+#  pfas_data %>%
+#    select(seqn, pfdea, pfhxs, me_pfosa_acoh,	pfna, pfua,	pfdoa, n_pfoa, sb_pfoa, n_pfos,	sm_pfos) %>% 
+#    gather(key = "analyte", value = "value", pfdea:sm_pfos) %>% 
+#    group_by(analyte) %>% 
+#    na.omit() %>% 
+#    summarise(n = n(), 
+#              mean = mean(value),
+#              sd = sd(value))
+
+
+pfas_summary <-
+  pfas_load %>%
+    select(SEQN, LBXPFDE, LBXPFHS, LBXMPAH, LBXPFNA, LBXPFUA, LBXPFDO, LBXNFOA, LBXBFOA, LBXNFOS, LBXMFOS) %>% 
+    gather(key = "variable", value = "value", LBXPFDE:LBXMFOS) %>% 
+    group_by(variable) %>% 
+    na.omit() %>% 
+    summarise(n = n(), 
+              mean = mean(value),
+              sd = sd(value))
 
 
 # Weighted
 
 pfas_inputs <- as.data.frame(matrix(c(
   # CYCLE        COLUMN    COMMENT     WEIGHTS
-   "2015-2016", "LBXPFDE", "LBXPFDEL", "WTSB2YR",
-   "2015-2016", "LBXPFHS", "LBXPFHSL", "WTSB2YR",
-   "2015-2016", "LBXMPAH", "LBXMPAHL", "WTSB2YR",
-   "2015-2016", "LBXPFNA", "LBXPFNAL", "WTSB2YR",
-   "2015-2016", "LBXPFUA", "LBXPFUAL", "WTSB2YR",
-   "2015-2016", "LBXPFDO", "LBXPFDOL", "WTSB2YR",
-   "2015-2016", "LBXNFOA", "LBXNFOAL", "WTSB2YR",
-   "2015-2016", "LBXBFOA", "LBXBFOAL", "WTSB2YR",
-   "2015-2016", "LBXNFOS", "LBXNFOSL", "WTSB2YR",
-   "2015-2016", "LBXMFOS", "LBXMFOSL", "WTSB2YR"
+   "2015-2016", "LBXPFDE", "LBDPFDEL", "WTSB2YR",
+   "2015-2016", "LBXPFHS", "LBDPFHSL", "WTSB2YR",
+   "2015-2016", "LBXMPAH", "LBDMPAHL", "WTSB2YR",
+   "2015-2016", "LBXPFNA", "LBDPFNAL", "WTSB2YR",
+   "2015-2016", "LBXPFUA", "LBDPFUAL", "WTSB2YR",
+   "2015-2016", "LBXPFDO", "LBDPFDOL", "WTSB2YR",
+   "2015-2016", "LBXNFOA", "LBDNFOAL", "WTSB2YR",
+   "2015-2016", "LBXBFOA", "LBDBFOAL", "WTSB2YR",
+   "2015-2016", "LBXNFOS", "LBDNFOSL", "WTSB2YR",
+   "2015-2016", "LBXMFOS", "LBDMFOSL", "WTSB2YR"
 ), ncol = 4, byrow = TRUE), stringsAsFactors = FALSE)
 
 names(pfas_inputs) <- c("cycle", "column", "comment_column", "weights_column")
 
-nhanes_quantile(pfas_survey, pfas_inputs, quantiles = c(0.5, 0.95, 0.99))
-nhanes_survey(svymean, pfas_survey, pfas_inputs, na.rm = TRUE)
+weighted_median <-
+  nhanes_quantile(pfas_load, pfas_inputs, quantiles = 0.5) %>% 
+  select(column, weighted_median = value)
 
-```
-
-### PFAS Boxplot
-
-```{r boxplot_untransformed, echo = FALSE, eval = FALSE}
-pfas_data %>%
-  select(seqn, pfdea, pfhxs, me_pfosa_acoh,	pfna, pfua,	pfdoa, n_pfoa, sb_pfoa, n_pfos,	sm_pfos) %>% 
-  gather(key = "analyte", value = "value", pfdea:sm_pfos) %>% 
-  group_by(analyte) %>% 
-  na.omit() %>% 
-  ggplot(aes(x = analyte, y = value)) +
-    geom_boxplot() 
-
-```
-
-```{r boxplot_log_scale}
-
-pfas_data %>%
-  select(seqn, pfdea, pfhxs, me_pfosa_acoh,	pfna, pfua,	pfdoa, n_pfoa, sb_pfoa, n_pfos,	sm_pfos) %>% 
-  gather(key = "analyte", value = "value",  pfdea:sm_pfos) %>% 
-  group_by(analyte) %>% 
-  na.omit() %>% 
-  ggplot(aes(x = analyte, y = value)) +
-    geom_boxplot() +
-     scale_y_log10()
-```
+weighted_mean <-
+  nhanes_survey(svymean, pfas_load, pfas_inputs, na.rm = TRUE) %>% 
+    select(column, weighted_mean = value)
 
 
 
 
+codes <- data.frame(
+  variable = c("LBXPFDE", "LBXPFHS", "LBXMPAH", "LBXPFNA", "LBXPFUA", "LBXPFDO", "LBXNFOA", "LBXBFOA", "LBXNFOS", "LBXMFOS"),
+  analyte = c("pfdea", "pfhxs", "me_pfosa_acoh",	"pfna", "pfua",	"pfdoa", "n_pfoa", "sb_pfoa", "n_pfos",	"sm_pfos"))
 
 
+pfas_table <-
+  pfas_summary %>% 
+    left_join(weighted_mean, by = c("variable" = "column")) %>% 
+    left_join(weighted_median, by = c("variable" = "column")) %>% 
+    left_join(codes, by = "variable") %>% 
+    subset(select = c(1, 7, 2, 3, 4, 5, 6))
 
-### PFAS Ridge plot
-```{r ridge_plot}
+pfas_table %>%
+  knitr::kable(digits = 2) 
 
-pfas_data %>%
-  select(seqn, pfdea, pfhxs, me_pfosa_acoh,	pfna, pfua,	pfdoa, n_pfoa, sb_pfoa, n_pfos,	sm_pfos) %>% 
-  gather(key = "analyte", value = "value", pfdea:sm_pfos) %>% 
-  group_by(analyte) %>% 
-  na.omit() %>% 
-  filter(value < 10) %>% 
-  ggplot(aes(x = value, y = analyte)) +
-    ggridges::geom_density_ridges(scale = .85) +
-    scale_x_log10()
-    
-
-
-    
-
-```
-
-### PFOS vs. PFOA scatterplot
-```{r plot_pfoa_pfas, message = FALSE}
-pfas_data %>% 
-  ggplot(aes(x = n_pfoa, y = n_pfos)) + 
-  geom_point(aes(color = riagendr), alpha = .5) +
-  geom_smooth(se = TRUE) +
-    scale_x_log10() +
-    scale_y_log10()
-```
-
-### PFOS vs age acatterplot
-```{r plot pfos_age, message = FALSE}
-pfas_data %>% 
-  ggplot(aes(x = ridageyr, y = n_pfos)) + 
-  geom_point(aes(color = riagendr), alpha = .5) +
-  geom_smooth(se = TRUE) +
-    scale_y_log10()
+kable_as_image(kable_input, filename = NULL, file_format = "png",
+  latex_header_includes = NULL, keep_pdf = FALSE, density = 300,
+  keep_tex = FALSE)
 
 ```
 
@@ -231,21 +188,5 @@ as_tibble(bodymass_data)
 # bodymass_data %>%  nhanes_detection_frequency("BMXBMI", "BMXBMI", "WTMEC2YR") # not completely sure on weight
 bodymass_data %>% nhanes_sample_size("BMXBMI", "BMXBMI", "WTMEC2YR")
 bodymass_data %>%  nhanes_quantile("BMXBMI","BMXBMI", "WTMEC2YR", quantiles = c(0.5, 0.95))
-```
-
-### BMI Histogram, log transformed
-```{r bmi_hist}
-bodymass_data %>%  nhanes_hist("BMXBMI", "BMXBMI", "WTMEC2YR")
-bodymass_data %>%  nhanes_hist("BMXBMI", "BMXBMI", "WTMEC2YR", transform = "log")
-
-```
-
-### BMI Scatterplot
-```{r plot bmi_age, message = FALSE, warning = FALSE}
-bodymass_data %>% 
-  ggplot(aes(x = RIDAGEYR, y = BMXBMI)) + 
-  geom_point(aes(color = RIAGENDR), alpha = .5) +
-  geom_smooth(se = TRUE)
-
 ```
 
