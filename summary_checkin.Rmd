@@ -1,0 +1,251 @@
+---
+title: "summary_checkin"
+author: "Team LSD: Adnan, Jenni, Stephen"
+date: "February 13, 2019"
+output: 
+  github_document:
+    toc: true
+    toc_depth: 3
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Per- and polyfluoroalkyl substances (PFAS) and Body Mass
+## 26 February 2019 Check-In
+
+
+
+### 1. Water and food consumption and consumer product use influence PFAS serum concentrations.
+
+**IV**: Survey Questions: drinking water sources, drinking water consumption, canned goods, microwave popcorn, beauty and personal care products (including dental floss)
+
+**DV**: Serum PFAS concentrations (Outcome): PFDeA, PFHxS, Me-PFOSA-AcOH, PFNA, PFUA, PFDoA, n-PFOA, Sb-PFOA, n-PFOS, Sm-PFOS
+
+### 2. Elevated PFAS concentrations contribute to higher BMI.
+
+**IV**: Serum PFAS concentrations (Outcome): PFDeA, PFHxS, Me-PFOSA-AcOH, PFNA, PFUA, PFDoA, n-PFOA, Sb-PFOA, n-PFOS, Sm-PFOS
+
+**DV**: Body weight, BMI
+
+Potential confounders, effect modifiers, or co-variates of interest: 
+* age 
+* gestational diabetes
+* pre-diabetes / diabetes
+* sex 
+* smoking status
+* household income
+* alcohol
+* waist circumference, 2 years of age and older
+* sagittal abdominal diameter, 8 years of age and older
+
+*References*: https://www.ncbi.nlm.nih.gov/pubmed/?term=PFAS+and+BMI 
+
+### 3. Serum PFAS levels serve as a mediator between water/food consumption and body mass.
+
+**DAG**:
+  
+water/food/product use (exposure) --> PFAS serum concentrations (internal dose) --> increased body mass (biological effect)  
+
+
+```{r packages, message = FALSE}
+library(tidyverse)
+library(RNHANES)
+library(survey)
+```
+
+
+NHANES files and the comprehensive variable list
+```{r load_file_names, cache = TRUE, message = FALSE}
+files <- nhanes_data_files()  #1,328 obs of 10 variables
+variables <- nhanes_variables()  #48,398 obs of 10 variables
+
+```
+
+```{r explore_files}
+files %>% count(cycle) %>% View
+files %>% count(component)
+```
+
+
+## NHANES Dietary Interviews
+
+*Reference*: https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/DR1IFF_I.htm
+
+Detailed information about each food/beverage item (including the description, amount of, and nutrient content) reported by each participant is included in the Individual Foods files.
+
+* Drinking water variables:
+
+    + Total plain water drank yesterday (gm)
+    + Total tap water drank yesterday (gm)
+    + Total bottled water drank yesterday (gm)
+    + Tap water source
+
+* Fish consumption during past 30 days (by type) 
+
+## PFAS
+
+### Load and Inspect PFAS data
+NHANES Codebook References:
+https://wwwn.cdc.gov/Nchs/Nhanes/2013-2014/PFAS_H.htm
+https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/PFAS_I.htm
+
+```{r load_pfas, message = FALSE}
+
+ 
+pfas_data <- nhanes_load_data("PFAS_I", "2015-2016", demographics = TRUE)
+
+pfas_survey <- nhanes_survey_design(pfas_data, "WTSB2YR")
+
+pfas_data <- nhanes_load_data("PFAS_I", "2015-2016", demographics = TRUE) %>% 
+  janitor::clean_names() %>% 
+  rename(pfdea = lbxpfde, pfhxs = lbxpfhs, me_pfosa_acoh = lbxmpah,	pfna = lbxpfna, pfua = lbxpfua,	pfdoa = lbxpfdo, n_pfoa = lbxnfoa,	sb_pfoa = lbxbfoa, n_pfos = lbxnfos,	sm_pfos = lbxmfos)
+
+
+```
+
+### 2015-2016 PFAS summary table
+
+
+```{r summary_tables_remove_na}
+
+pfas_data %>%
+  select(seqn, pfdea, pfhxs, me_pfosa_acoh,	pfna, pfua,	pfdoa, n_pfoa, sb_pfoa, n_pfos,	sm_pfos) %>% 
+  gather(key = "analyte", value = "value", pfdea:sm_pfos) %>% 
+  group_by(analyte) %>% 
+  na.omit() %>% 
+  summarise(n = n(), 
+            mean = mean(value),
+            sd = sd(value)) %>%
+  knitr::kable(digits = 2)
+
+
+# Weighted
+
+pfas_inputs <- as.data.frame(matrix(c(
+  # CYCLE        COLUMN    COMMENT     WEIGHTS
+   "2015-2016", "LBXPFDE", "LBXPFDEL", "WTSB2YR",
+   "2015-2016", "LBXPFHS", "LBXPFHSL", "WTSB2YR",
+   "2015-2016", "LBXMPAH", "LBXMPAHL", "WTSB2YR",
+   "2015-2016", "LBXPFNA", "LBXPFNAL", "WTSB2YR",
+   "2015-2016", "LBXPFUA", "LBXPFUAL", "WTSB2YR",
+   "2015-2016", "LBXPFDO", "LBXPFDOL", "WTSB2YR",
+   "2015-2016", "LBXNFOA", "LBXNFOAL", "WTSB2YR",
+   "2015-2016", "LBXBFOA", "LBXBFOAL", "WTSB2YR",
+   "2015-2016", "LBXNFOS", "LBXNFOSL", "WTSB2YR",
+   "2015-2016", "LBXMFOS", "LBXMFOSL", "WTSB2YR"
+), ncol = 4, byrow = TRUE), stringsAsFactors = FALSE)
+
+names(pfas_inputs) <- c("cycle", "column", "comment_column", "weights_column")
+
+nhanes_quantile(pfas_survey, pfas_inputs, quantiles = c(0.5, 0.95, 0.99))
+nhanes_survey(svymean, pfas_survey, pfas_inputs, na.rm = TRUE)
+
+```
+
+### PFAS Boxplot
+
+```{r boxplot_untransformed, echo = FALSE, eval = FALSE}
+pfas_data %>%
+  select(seqn, pfdea, pfhxs, me_pfosa_acoh,	pfna, pfua,	pfdoa, n_pfoa, sb_pfoa, n_pfos,	sm_pfos) %>% 
+  gather(key = "analyte", value = "value", pfdea:sm_pfos) %>% 
+  group_by(analyte) %>% 
+  na.omit() %>% 
+  ggplot(aes(x = analyte, y = value)) +
+    geom_boxplot() 
+
+```
+
+```{r boxplot_log_scale}
+
+pfas_data %>%
+  select(seqn, pfdea, pfhxs, me_pfosa_acoh,	pfna, pfua,	pfdoa, n_pfoa, sb_pfoa, n_pfos,	sm_pfos) %>% 
+  gather(key = "analyte", value = "value",  pfdea:sm_pfos) %>% 
+  group_by(analyte) %>% 
+  na.omit() %>% 
+  ggplot(aes(x = analyte, y = value)) +
+    geom_boxplot() +
+     scale_y_log10()
+```
+
+
+
+
+
+
+
+### PFAS Ridge plot
+```{r ridge_plot}
+
+pfas_data %>%
+  select(seqn, pfdea, pfhxs, me_pfosa_acoh,	pfna, pfua,	pfdoa, n_pfoa, sb_pfoa, n_pfos,	sm_pfos) %>% 
+  gather(key = "analyte", value = "value", pfdea:sm_pfos) %>% 
+  group_by(analyte) %>% 
+  na.omit() %>% 
+  filter(value < 10) %>% 
+  ggplot(aes(x = value, y = analyte)) +
+    ggridges::geom_density_ridges(scale = .85) +
+    scale_x_log10()
+    
+
+
+    
+
+```
+
+### PFOS vs. PFOA scatterplot
+```{r plot_pfoa_pfas, message = FALSE}
+pfas_data %>% 
+  ggplot(aes(x = n_pfoa, y = n_pfos)) + 
+  geom_point(aes(color = riagendr), alpha = .5) +
+  geom_smooth(se = TRUE) +
+    scale_x_log10() +
+    scale_y_log10()
+```
+
+### PFOS vs age acatterplot
+```{r plot pfos_age, message = FALSE}
+pfas_data %>% 
+  ggplot(aes(x = ridageyr, y = n_pfos)) + 
+  geom_point(aes(color = riagendr), alpha = .5) +
+  geom_smooth(se = TRUE) +
+    scale_y_log10()
+
+```
+
+## Body Mass
+
+NHANES Codebook References:
+https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/BMX_I.htm
+
+### Load and Inspect BMI data
+
+```{r load body mass data, message = FALSE}
+bodymass_data <- nhanes_load_data("BMX_I", "2015-2016", demographics = TRUE)
+as_tibble(bodymass_data)
+```
+
+### Inspect body mass data from 2015-2016
+```{r examine_bmi, warning = FALSE, message = FALSE}
+# bodymass_data %>%  nhanes_detection_frequency("BMXBMI", "BMXBMI", "WTMEC2YR") # not completely sure on weight
+bodymass_data %>% nhanes_sample_size("BMXBMI", "BMXBMI", "WTMEC2YR")
+bodymass_data %>%  nhanes_quantile("BMXBMI","BMXBMI", "WTMEC2YR", quantiles = c(0.5, 0.95))
+```
+
+### BMI Histogram, log transformed
+```{r bmi_hist}
+bodymass_data %>%  nhanes_hist("BMXBMI", "BMXBMI", "WTMEC2YR")
+bodymass_data %>%  nhanes_hist("BMXBMI", "BMXBMI", "WTMEC2YR", transform = "log")
+
+```
+
+### BMI Scatterplot
+```{r plot bmi_age, message = FALSE, warning = FALSE}
+bodymass_data %>% 
+  ggplot(aes(x = RIDAGEYR, y = BMXBMI)) + 
+  geom_point(aes(color = RIAGENDR), alpha = .5) +
+  geom_smooth(se = TRUE)
+
+```
+
