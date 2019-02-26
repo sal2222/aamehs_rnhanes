@@ -15,6 +15,7 @@ February 13, 2019
     -   [Body Mass](#body-mass)
         -   [Load and Inspect BMI data](#load-and-inspect-bmi-data)
         -   [Inspect body mass data from 2015-2016](#inspect-body-mass-data-from-2015-2016)
+        -   [Load water consumption](#load-water-consumption)
 
 Per- and polyfluoroalkyl substances (PFAS) and Body Mass
 ========================================================
@@ -281,3 +282,31 @@ bodymass_data %>%  nhanes_quantile("BMXBMI","BMXBMI", "WTMEC2YR", quantiles = c(
     ##   comment_column below_lod quantile     name
     ## 1         BMXBMI     FALSE      50% quantile
     ## 2         BMXBMI     FALSE      95% quantile
+
+### Load water consumption
+
+``` r
+dietary_day1 <- nhanes_load_data("DR1TOT_I", "2015-2016") %>% 
+    select(SEQN, DR1_320Z, DR1_330Z, DR1BWATZ, DR1TWS) %>% 
+  janitor::clean_names() 
+```
+
+    ## Downloading DR1TOT_I.XPT to C:\Users\slewa\AppData\Local\Temp\RtmpoHytlb/DR1TOT_I.XPT
+
+``` r
+dietary_day2 <- nhanes_load_data("DR2TOT_I", "2015-2016") %>% 
+    select(SEQN, DR2_320Z, DR2_330Z, DR2BWATZ, DR2TWS) %>% 
+  janitor::clean_names()
+```
+
+    ## Downloading DR2TOT_I.XPT to C:\Users\slewa\AppData\Local\Temp\RtmpoHytlb/DR2TOT_I.XPT
+
+#### Link water consumption to SEQN
+
+``` r
+water_matched <- 
+  pfas_data %>% 
+  select(seqn) %>% 
+  left_join(dietary_day1,  by = "seqn") %>% 
+  left_join(dietary_day2,  by = "seqn")
+```

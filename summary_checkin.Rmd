@@ -165,9 +165,7 @@ pfas_table <-
 pfas_table %>%
   knitr::kable(digits = 2) 
 
-kable_as_image(kable_input, filename = NULL, file_format = "png",
-  latex_header_includes = NULL, keep_pdf = FALSE, density = 300,
-  keep_tex = FALSE)
+
 
 ```
 
@@ -188,5 +186,36 @@ as_tibble(bodymass_data)
 # bodymass_data %>%  nhanes_detection_frequency("BMXBMI", "BMXBMI", "WTMEC2YR") # not completely sure on weight
 bodymass_data %>% nhanes_sample_size("BMXBMI", "BMXBMI", "WTMEC2YR")
 bodymass_data %>%  nhanes_quantile("BMXBMI","BMXBMI", "WTMEC2YR", quantiles = c(0.5, 0.95))
+```
+
+
+### Load water consumption
+
+```{r load water}
+dietary_day1 <- nhanes_load_data("DR1TOT_I", "2015-2016") %>% 
+    select(SEQN, DR1_320Z, DR1_330Z, DR1BWATZ, DR1TWS) %>% 
+  janitor::clean_names() 
+
+
+
+dietary_day2 <- nhanes_load_data("DR2TOT_I", "2015-2016") %>% 
+    select(SEQN, DR2_320Z, DR2_330Z, DR2BWATZ, DR2TWS) %>% 
+  janitor::clean_names()
+
+
+```
+
+
+#### Link water consumption to SEQN
+
+```{r link_water}
+
+water_matched <- 
+  pfas_data %>% 
+  select(seqn) %>% 
+  left_join(dietary_day1,  by = "seqn") %>% 
+  left_join(dietary_day2,  by = "seqn")
+
+
 ```
 
