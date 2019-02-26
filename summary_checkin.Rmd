@@ -174,8 +174,54 @@ pfas_bodymass_clean = left_join(pfas_data_clean, bodymass_data_clean, by = "seqn
 
 ```
 
+```{r}
+
+# Histogram of BMI
+
+pfas_bodymass_clean %>% 
+  ggplot(aes(x = bmxbmi)) +
+  geom_histogram()
+
+# Histogram of Weight
+
+pfas_bodymass_clean %>% 
+  ggplot(aes(x = bmxwt)) +
+  geom_histogram()
+
+# Descriptive statistics BMI and weight
+
+stats_bmi = as_data_frame(
+  summarise(pfas_bodymass_clean,
+            Mean = mean(bmxbmi, na.rm = TRUE),
+            SD = sd(bmxbmi, na.rm = TRUE),
+            Median = median(bmxbmi, na.rm = TRUE),
+            IQR = IQR(bmxbmi, na.rm = TRUE))
+  ) %>% 
+  mutate(Variable = c("BMI"))
+
+stats_wt = as_data_frame(
+  summarise(pfas_bodymass_clean,
+            Mean = mean(bmxwt, na.rm = TRUE),
+            SD = sd(bmxwt, na.rm = TRUE),
+            Median = median(bmxwt, na.rm = TRUE),
+            IQR = IQR(bmxwt, na.rm = TRUE))
+  ) %>% 
+  mutate(Variable = c("Weight"))
+
+bodymass_table = stats_bmi %>% 
+  bind_rows(., stats_wt) %>% 
+  subset(select = c("Variable", "Mean", "SD", "Median", "IQR")) 
+
+bodymass_table %>% 
+  knitr::kable()
+```
 
 
+
+
+
+
+## Water
 ### Load water consumption
 
 ```{r load water}
@@ -201,7 +247,51 @@ water_matched <-
   pfas_data %>% 
   select(seqn) %>% 
   left_join(dietary_day1,  by = "seqn") %>% 
-  left_join(dietary_day2,  by = "seqn")
+  left_join(dietary_day2,  by = "seqn") %>% 
+  mutate(avg_320z = (dr1_320z + dr2_320z) / 2,
+         avg_330z = (dr1_330z + dr2_320z) / 2,
+         avgbwatz = (dr1bwatz + dr2bwatz) / 2,
+         avgtws = (dr1tws + dr2tws) / 2)
 
 
 ```
+
+### Water consumption table (PFAS sample)
+```{r water_table}
+
+water_table <-
+  water_matched %>% 
+  select(avg_320z:avgtws) %>% 
+  rename(plain_water_gm = avg_320z,
+         tap_water_gm = avg_330z ,
+          bottled_water_gm = avgbwatz,
+         tap_water_source = avgtws) %>% 
+  summarise_all(funs(mean, sd, median), na.rm = TRUE) %>% 
+  gather(water_consumption = plain_water_gm_mean:tap_water_source_median) 
+
+water_table
+```
+
+### Water consumption boxplot
+
+```{r}
+
+water_matched %>% 
+  select(avg_320z:avgtws) %>% 
+  rename(plain_water_gm = avg_320z,
+         tap_water_gm = avg_330z ,
+          bottled_water_gm = avgbwatz,
+         tap_water_source = avgtws) %>% 
+  gather(key = "variable", value = "value", plain_water_gm:bottled_water_gm) %>% 
+  group_by(variable) %>% 
+  na.omit() %>% 
+  ggplot(aes(x = variable, y = value)) +
+    geom_boxplot() +
+  labs(title = "Daily water consumption (grams) in PFAS sample", y = "grams")
+```
+
+```{r}
+water_matched %>%
+  count(dr1tws)
+```
+

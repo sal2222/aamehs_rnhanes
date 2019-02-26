@@ -13,7 +13,10 @@ February 13, 2019
         -   [Load and Inspect BMI data](#load-and-inspect-bmi-data)
         -   [Inspect body mass data from 2015-2016](#inspect-body-mass-data-from-2015-2016)
     -   [Merged Dataset](#merged-dataset)
+    -   [Water](#water)
         -   [Load water consumption](#load-water-consumption)
+        -   [Water consumption table (PFAS sample)](#water-consumption-table-pfas-sample)
+        -   [Water consumption boxplot](#water-consumption-boxplot)
 
 Per- and polyfluoroalkyl substances (PFAS) and Body Mass
 ========================================================
@@ -275,6 +278,71 @@ bodymass_data_clean = bodymass_data %>%
 pfas_bodymass_clean = left_join(pfas_data_clean, bodymass_data_clean, by = "seqn")
 ```
 
+``` r
+# Histogram of BMI
+
+pfas_bodymass_clean %>% 
+  ggplot(aes(x = bmxbmi)) +
+  geom_histogram()
+```
+
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+
+    ## Warning: Removed 23 rows containing non-finite values (stat_bin).
+
+![](summary_checkin_files/figure-markdown_github/unnamed-chunk-2-1.png)
+
+``` r
+# Histogram of Weight
+
+pfas_bodymass_clean %>% 
+  ggplot(aes(x = bmxwt)) +
+  geom_histogram()
+```
+
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+
+    ## Warning: Removed 23 rows containing non-finite values (stat_bin).
+
+![](summary_checkin_files/figure-markdown_github/unnamed-chunk-2-2.png)
+
+``` r
+# Descriptive statistics BMI and weight
+
+stats_bmi = as_data_frame(
+  summarise(pfas_bodymass_clean,
+            Mean = mean(bmxbmi, na.rm = TRUE),
+            SD = sd(bmxbmi, na.rm = TRUE),
+            Median = median(bmxbmi, na.rm = TRUE),
+            IQR = IQR(bmxbmi, na.rm = TRUE))
+  ) %>% 
+  mutate(Variable = c("BMI"))
+
+stats_wt = as_data_frame(
+  summarise(pfas_bodymass_clean,
+            Mean = mean(bmxwt, na.rm = TRUE),
+            SD = sd(bmxwt, na.rm = TRUE),
+            Median = median(bmxwt, na.rm = TRUE),
+            IQR = IQR(bmxwt, na.rm = TRUE))
+  ) %>% 
+  mutate(Variable = c("Weight"))
+
+bodymass_table = stats_bmi %>% 
+  bind_rows(., stats_wt) %>% 
+  subset(select = c("Variable", "Mean", "SD", "Median", "IQR")) 
+
+bodymass_table %>% 
+  knitr::kable()
+```
+
+| Variable |      Mean|         SD|  Median|    IQR|
+|:---------|---------:|----------:|-------:|------:|
+| BMI      |  28.66707|   7.148769|    27.7|   9.00|
+| Weight   |  79.24974|  22.403440|    76.1|  28.05|
+
+Water
+-----
+
 ### Load water consumption
 
 ``` r
@@ -283,7 +351,7 @@ dietary_day1 <- nhanes_load_data("DR1TOT_I", "2015-2016") %>%
   janitor::clean_names() 
 ```
 
-    ## Downloading DR1TOT_I.XPT to C:\Users\slewa\AppData\Local\Temp\RtmpA7gP6f/DR1TOT_I.XPT
+    ## Downloading DR1TOT_I.XPT to C:\Users\slewa\AppData\Local\Temp\RtmpIV3YaV/DR1TOT_I.XPT
 
 ``` r
 dietary_day2 <- nhanes_load_data("DR2TOT_I", "2015-2016") %>% 
@@ -291,7 +359,7 @@ dietary_day2 <- nhanes_load_data("DR2TOT_I", "2015-2016") %>%
   janitor::clean_names()
 ```
 
-    ## Downloading DR2TOT_I.XPT to C:\Users\slewa\AppData\Local\Temp\RtmpA7gP6f/DR2TOT_I.XPT
+    ## Downloading DR2TOT_I.XPT to C:\Users\slewa\AppData\Local\Temp\RtmpIV3YaV/DR2TOT_I.XPT
 
 #### Link water consumption to SEQN
 
@@ -300,5 +368,73 @@ water_matched <-
   pfas_data %>% 
   select(seqn) %>% 
   left_join(dietary_day1,  by = "seqn") %>% 
-  left_join(dietary_day2,  by = "seqn")
+  left_join(dietary_day2,  by = "seqn") %>% 
+  mutate(avg_320z = (dr1_320z + dr2_320z) / 2,
+         avg_330z = (dr1_330z + dr2_320z) / 2,
+         avgbwatz = (dr1bwatz + dr2bwatz) / 2,
+         avgtws = (dr1tws + dr2tws) / 2)
 ```
+
+### Water consumption table (PFAS sample)
+
+``` r
+water_table <-
+  water_matched %>% 
+  select(avg_320z:avgtws) %>% 
+  rename(plain_water_gm = avg_320z,
+         tap_water_gm = avg_330z ,
+          bottled_water_gm = avgbwatz,
+         tap_water_source = avgtws) %>% 
+  summarise_all(funs(mean, sd, median), na.rm = TRUE) %>% 
+  gather(water_consumption = plain_water_gm_mean:tap_water_source_median) 
+
+water_table
+```
+
+    ##                        key      value
+    ## 1      plain_water_gm_mean 1120.95273
+    ## 2        tap_water_gm_mean  838.24921
+    ## 3    bottled_water_gm_mean  546.67689
+    ## 4    tap_water_source_mean    8.15009
+    ## 5        plain_water_gm_sd 1027.23774
+    ## 6          tap_water_gm_sd  896.85726
+    ## 7      bottled_water_gm_sd  815.47016
+    ## 8      tap_water_source_sd   24.12917
+    ## 9    plain_water_gm_median  873.75000
+    ## 10     tap_water_gm_median  570.00000
+    ## 11 bottled_water_gm_median  240.00000
+    ## 12 tap_water_source_median    1.00000
+
+### Water consumption boxplot
+
+``` r
+water_matched %>% 
+  select(avg_320z:avgtws) %>% 
+  rename(plain_water_gm = avg_320z,
+         tap_water_gm = avg_330z ,
+          bottled_water_gm = avgbwatz,
+         tap_water_source = avgtws) %>% 
+  gather(key = "variable", value = "value", plain_water_gm:bottled_water_gm) %>% 
+  group_by(variable) %>% 
+  na.omit() %>% 
+  ggplot(aes(x = variable, y = value)) +
+    geom_boxplot() +
+  labs(title = "Daily water consumption (grams) in PFAS sample", y = "grams")
+```
+
+![](summary_checkin_files/figure-markdown_github/unnamed-chunk-3-1.png)
+
+``` r
+water_matched %>%
+  count(dr1tws)
+```
+
+    ## # A tibble: 6 x 2
+    ##   dr1tws     n
+    ##    <dbl> <int>
+    ## 1      1  1279
+    ## 2      2   132
+    ## 3      3    16
+    ## 4      4   447
+    ## 5     99   147
+    ## 6     NA   149
