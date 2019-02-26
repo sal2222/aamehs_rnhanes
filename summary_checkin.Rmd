@@ -3,7 +3,7 @@ title: "summary_checkin"
 author: "Team LSD: Adnan, Jenni, Stephen"
 date: "February 13, 2019"
 output: 
-  github_document:
+  word_document:
     toc: true
     toc_depth: 3
 ---
@@ -269,7 +269,9 @@ water_table <-
   summarise_all(funs(mean, sd, median), na.rm = TRUE) %>% 
   gather(water_consumption = plain_water_gm_mean:tap_water_source_median) 
 
-water_table
+water_table %>% 
+  knitr::kable()
+
 ```
 
 ### Water consumption boxplot
