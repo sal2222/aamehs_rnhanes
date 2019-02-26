@@ -5,9 +5,6 @@ February 13, 2019
 
 -   [Per- and polyfluoroalkyl substances (PFAS) and Body Mass](#per--and-polyfluoroalkyl-substances-pfas-and-body-mass)
     -   [26 February 2019 Check-In](#february-2019-check-in)
-        -   [1. Water and food consumption and consumer product use influence PFAS serum concentrations.](#water-and-food-consumption-and-consumer-product-use-influence-pfas-serum-concentrations.)
-        -   [2. Elevated PFAS concentrations contribute to higher BMI.](#elevated-pfas-concentrations-contribute-to-higher-bmi.)
-        -   [3. Serum PFAS levels serve as a mediator between water/food consumption and body mass.](#serum-pfas-levels-serve-as-a-mediator-between-waterfood-consumption-and-body-mass.)
     -   [NHANES Dietary Interviews](#nhanes-dietary-interviews)
     -   [PFAS](#pfas)
         -   [Load and Inspect PFAS data](#load-and-inspect-pfas-data)
@@ -15,6 +12,7 @@ February 13, 2019
     -   [Body Mass](#body-mass)
         -   [Load and Inspect BMI data](#load-and-inspect-bmi-data)
         -   [Inspect body mass data from 2015-2016](#inspect-body-mass-data-from-2015-2016)
+    -   [Merged Dataset](#merged-dataset)
         -   [Load water consumption](#load-water-consumption)
 
 Per- and polyfluoroalkyl substances (PFAS) and Body Mass
@@ -22,28 +20,6 @@ Per- and polyfluoroalkyl substances (PFAS) and Body Mass
 
 26 February 2019 Check-In
 -------------------------
-
-### 1. Water and food consumption and consumer product use influence PFAS serum concentrations.
-
-**IV**: Survey Questions: drinking water sources, drinking water consumption, canned goods, microwave popcorn, beauty and personal care products (including dental floss)
-
-**DV**: Serum PFAS concentrations (Outcome): PFDeA, PFHxS, Me-PFOSA-AcOH, PFNA, PFUA, PFDoA, n-PFOA, Sb-PFOA, n-PFOS, Sm-PFOS
-
-### 2. Elevated PFAS concentrations contribute to higher BMI.
-
-**IV**: Serum PFAS concentrations (Outcome): PFDeA, PFHxS, Me-PFOSA-AcOH, PFNA, PFUA, PFDoA, n-PFOA, Sb-PFOA, n-PFOS, Sm-PFOS
-
-**DV**: Body weight, BMI
-
-Potential confounders, effect modifiers, or co-variates of interest: \* age \* gestational diabetes \* pre-diabetes / diabetes \* sex \* smoking status \* household income \* alcohol \* waist circumference, 2 years of age and older \* sagittal abdominal diameter, 8 years of age and older
-
-*References*: <https://www.ncbi.nlm.nih.gov/pubmed/?term=PFAS+and+BMI>
-
-### 3. Serum PFAS levels serve as a mediator between water/food consumption and body mass.
-
-**DAG**:
-
-water/food/product use (exposure) --&gt; PFAS serum concentrations (internal dose) --&gt; increased body mass (biological effect)
 
 ``` r
 library(tidyverse)
@@ -283,6 +259,22 @@ bodymass_data %>%  nhanes_quantile("BMXBMI","BMXBMI", "WTMEC2YR", quantiles = c(
     ## 1         BMXBMI     FALSE      50% quantile
     ## 2         BMXBMI     FALSE      95% quantile
 
+Merged Dataset
+--------------
+
+``` r
+pfas_data_clean = nhanes_load_data("PFAS_I", "2015-2016", demographics = TRUE) %>% 
+  janitor::clean_names() %>% 
+  select(seqn, cycle, sddsrvyr, riagendr, ridageyr, ridreth3, dmdeduc3, dmdeduc2, wtint2yr, wtmec2yr, lbxpfde:lbdmfosl) %>% 
+  rename(pfdea = lbxpfde, pfhxs = lbxpfhs, me_pfosa_acoh = lbxmpah, pfna = lbxpfna, pfua = lbxpfua, pfdoa = lbxpfdo, n_pfoa = lbxnfoa,  sb_pfoa = lbxbfoa, n_pfos = lbxnfos,    sm_pfos = lbxmfos)
+
+bodymass_data_clean = bodymass_data %>% 
+  janitor::clean_names() %>% 
+  select(seqn, bmxbmi, bmxwt, bmiwt)
+
+pfas_bodymass_clean = left_join(pfas_data_clean, bodymass_data_clean, by = "seqn")
+```
+
 ### Load water consumption
 
 ``` r
@@ -291,7 +283,7 @@ dietary_day1 <- nhanes_load_data("DR1TOT_I", "2015-2016") %>%
   janitor::clean_names() 
 ```
 
-    ## Downloading DR1TOT_I.XPT to C:\Users\slewa\AppData\Local\Temp\RtmpoHytlb/DR1TOT_I.XPT
+    ## Downloading DR1TOT_I.XPT to C:\Users\slewa\AppData\Local\Temp\RtmpA7gP6f/DR1TOT_I.XPT
 
 ``` r
 dietary_day2 <- nhanes_load_data("DR2TOT_I", "2015-2016") %>% 
@@ -299,7 +291,7 @@ dietary_day2 <- nhanes_load_data("DR2TOT_I", "2015-2016") %>%
   janitor::clean_names()
 ```
 
-    ## Downloading DR2TOT_I.XPT to C:\Users\slewa\AppData\Local\Temp\RtmpoHytlb/DR2TOT_I.XPT
+    ## Downloading DR2TOT_I.XPT to C:\Users\slewa\AppData\Local\Temp\RtmpA7gP6f/DR2TOT_I.XPT
 
 #### Link water consumption to SEQN
 
