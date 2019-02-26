@@ -17,37 +17,6 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 
-### 1. Water and food consumption and consumer product use influence PFAS serum concentrations.
-
-**IV**: Survey Questions: drinking water sources, drinking water consumption, canned goods, microwave popcorn, beauty and personal care products (including dental floss)
-
-**DV**: Serum PFAS concentrations (Outcome): PFDeA, PFHxS, Me-PFOSA-AcOH, PFNA, PFUA, PFDoA, n-PFOA, Sb-PFOA, n-PFOS, Sm-PFOS
-
-### 2. Elevated PFAS concentrations contribute to higher BMI.
-
-**IV**: Serum PFAS concentrations (Outcome): PFDeA, PFHxS, Me-PFOSA-AcOH, PFNA, PFUA, PFDoA, n-PFOA, Sb-PFOA, n-PFOS, Sm-PFOS
-
-**DV**: Body weight, BMI
-
-Potential confounders, effect modifiers, or co-variates of interest: 
-* age 
-* gestational diabetes
-* pre-diabetes / diabetes
-* sex 
-* smoking status
-* household income
-* alcohol
-* waist circumference, 2 years of age and older
-* sagittal abdominal diameter, 8 years of age and older
-
-*References*: https://www.ncbi.nlm.nih.gov/pubmed/?term=PFAS+and+BMI 
-
-### 3. Serum PFAS levels serve as a mediator between water/food consumption and body mass.
-
-**DAG**:
-  
-water/food/product use (exposure) --> PFAS serum concentrations (internal dose) --> increased body mass (biological effect)  
-
 
 ```{r packages, message = FALSE}
 
