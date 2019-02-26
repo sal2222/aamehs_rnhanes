@@ -190,3 +190,20 @@ bodymass_data %>% nhanes_sample_size("BMXBMI", "BMXBMI", "WTMEC2YR")
 bodymass_data %>%  nhanes_quantile("BMXBMI","BMXBMI", "WTMEC2YR", quantiles = c(0.5, 0.95))
 ```
 
+## Merged Dataset
+
+```{r}
+
+pfas_data_clean = nhanes_load_data("PFAS_I", "2015-2016", demographics = TRUE) %>% 
+  janitor::clean_names() %>% 
+  select(seqn, cycle, sddsrvyr, riagendr, ridageyr, ridreth3, dmdeduc3, dmdeduc2, wtint2yr, wtmec2yr, lbxpfde:lbdmfosl) %>% 
+  rename(pfdea = lbxpfde, pfhxs = lbxpfhs, me_pfosa_acoh = lbxmpah,	pfna = lbxpfna, pfua = lbxpfua,	pfdoa = lbxpfdo, n_pfoa = lbxnfoa,	sb_pfoa = lbxbfoa, n_pfos = lbxnfos,	sm_pfos = lbxmfos)
+
+bodymass_data_clean = bodymass_data %>% 
+  janitor::clean_names() %>% 
+  select(seqn, bmxbmi, bmxwt, bmiwt)
+
+pfas_bodymass_clean = left_join(pfas_data_clean, bodymass_data_clean, by = "seqn")
+
+```
+
