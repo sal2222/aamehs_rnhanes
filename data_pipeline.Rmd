@@ -26,7 +26,7 @@ library(survey)
 
 pfas_data_clean = nhanes_load_data("PFAS_I", "2015-2016", demographics = TRUE) %>% 
   janitor::clean_names() %>% 
-  select(seqn, cycle, sddsrvyr, riagendr, ridageyr, ridreth3, dmdeduc3, dmdeduc2, wtint2yr, wtmec2yr, lbxpfde:lbdmfosl) %>% 
+  select(seqn, cycle, sddsrvyr, riagendr, ridageyr, ridreth3, dmqmiliz, dmdeduc3, dmdeduc2, wtint2yr, wtmec2yr, lbxpfde:lbdmfosl) %>% 
   rename(pfdea = lbxpfde, pfhxs = lbxpfhs, me_pfosa_acoh = lbxmpah,	pfna = lbxpfna, pfua = lbxpfua,	pfdoa = lbxpfdo, n_pfoa = lbxnfoa,	sb_pfoa = lbxbfoa, n_pfos = lbxnfos,	sm_pfos = lbxmfos)
 
 

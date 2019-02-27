@@ -17,15 +17,15 @@ Load and Merge Data
 ``` r
 pfas_data_clean = nhanes_load_data("PFAS_I", "2015-2016", demographics = TRUE) %>% 
   janitor::clean_names() %>% 
-  select(seqn, cycle, sddsrvyr, riagendr, ridageyr, ridreth3, dmdeduc3, dmdeduc2, wtint2yr, wtmec2yr, lbxpfde:lbdmfosl) %>% 
+  select(seqn, cycle, sddsrvyr, riagendr, ridageyr, ridreth3, dmqmiliz, dmdeduc3, dmdeduc2, wtint2yr, wtmec2yr, lbxpfde:lbdmfosl) %>% 
   rename(pfdea = lbxpfde, pfhxs = lbxpfhs, me_pfosa_acoh = lbxmpah, pfna = lbxpfna, pfua = lbxpfua, pfdoa = lbxpfdo, n_pfoa = lbxnfoa,  sb_pfoa = lbxbfoa, n_pfos = lbxnfos,    sm_pfos = lbxmfos)
 ```
 
-    ## Downloading PFAS_I.XPT to C:\Users\jenni\AppData\Local\Temp\RtmpQ9yaVg/PFAS_I.XPT
+    ## Downloading PFAS_I.XPT to C:\Users\jenni\AppData\Local\Temp\RtmpQVhxvM/PFAS_I.XPT
 
-    ## Downloading DEMO_I.XPT to C:\Users\jenni\AppData\Local\Temp\RtmpQ9yaVg/DEMO_I.XPT
+    ## Downloading DEMO_I.XPT to C:\Users\jenni\AppData\Local\Temp\RtmpQVhxvM/DEMO_I.XPT
 
-    ## Caching CSV to C:\Users\jenni\AppData\Local\Temp\RtmpQ9yaVg/DEMO_I.csv
+    ## Caching CSV to C:\Users\jenni\AppData\Local\Temp\RtmpQVhxvM/DEMO_I.csv
 
 ### Body Mass Data
 
@@ -35,7 +35,7 @@ bodymass_data_clean <- nhanes_load_data("BMX_I", "2015-2016", demographics = TRU
   select(seqn, bmxbmi, bmxwt, bmiwt)
 ```
 
-    ## Downloading BMX_I.XPT to C:\Users\jenni\AppData\Local\Temp\RtmpQ9yaVg/BMX_I.XPT
+    ## Downloading BMX_I.XPT to C:\Users\jenni\AppData\Local\Temp\RtmpQVhxvM/BMX_I.XPT
 
 ### Water Data
 
@@ -46,7 +46,7 @@ dietary_day1 <- nhanes_load_data("DR1TOT_I", "2015-2016") %>%
   janitor::clean_names() 
 ```
 
-    ## Downloading DR1TOT_I.XPT to C:\Users\jenni\AppData\Local\Temp\RtmpQ9yaVg/DR1TOT_I.XPT
+    ## Downloading DR1TOT_I.XPT to C:\Users\jenni\AppData\Local\Temp\RtmpQVhxvM/DR1TOT_I.XPT
 
 ``` r
 # Day 2
@@ -55,7 +55,7 @@ dietary_day2 <- nhanes_load_data("DR2TOT_I", "2015-2016") %>%
   janitor::clean_names()
 ```
 
-    ## Downloading DR2TOT_I.XPT to C:\Users\jenni\AppData\Local\Temp\RtmpQ9yaVg/DR2TOT_I.XPT
+    ## Downloading DR2TOT_I.XPT to C:\Users\jenni\AppData\Local\Temp\RtmpQVhxvM/DR2TOT_I.XPT
 
 ``` r
 # Merge 2 dietary recalls

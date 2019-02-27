@@ -297,3 +297,38 @@ water_matched %>%
   count(dr1tws)
 ```
 
+### Sample Population characteristics
+
+```{#r population characteristics}
+
+aamehs_data %>%
+  group_by(riagendr) %>%
+  summarise(n = n(),
+            prop = (n/2170)*100)
+
+aamehs_data %>%
+  group_by(dmqmiliz) %>%
+  summarise(n = n(),
+            prop = (n/2170)*100)
+
+aamehs_data %>%
+  group_by(ridreth3) %>%
+  summarise(n = n(),
+            prop = (n/2170)*100)
+
+aamehs_data %>%
+  mutate(age_cat = case_when(
+    ridageyr < 20 ~ "12-19",
+    ridageyr >= 20 & ridageyr < 40 ~ "20-39",
+    ridageyr >= 40 & ridageyr < 60 ~ "40-59",
+    ridageyr >= 60 ~ ">=60"
+    )) %>% 
+  group_by(age_cat) %>%
+  summarise(n = n(),
+            prop = (n/2170)*100)
+
+mean(aamehs_data$ridageyr)
+sd(aamehs_data$ridageyr)
+
+```
+
