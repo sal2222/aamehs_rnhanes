@@ -1,0 +1,89 @@
+---
+title: "data_pipeline"
+author: "Team LSD: Adnan, Jenni, Stephen"
+date: "February 26, 2019"
+output: 
+  github_document:
+    toc: true
+    toc_depth: 3
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(RNHANES)
+library(survey)
+
+```
+
+## Load and Merge Data
+
+### PFAS Data
+
+```{r load pfas data}
+
+pfas_data_clean = nhanes_load_data("PFAS_I", "2015-2016", demographics = TRUE) %>% 
+  janitor::clean_names() %>% 
+  select(seqn, cycle, sddsrvyr, riagendr, ridageyr, ridreth3, dmqmiliz, dmdeduc3, dmdeduc2, wtint2yr, wtmec2yr, lbxpfde:lbdmfosl) %>% 
+  rename(pfdea = lbxpfde, pfhxs = lbxpfhs, me_pfosa_acoh = lbxmpah,	pfna = lbxpfna, pfua = lbxpfua,	pfdoa = lbxpfdo, n_pfoa = lbxnfoa,	sb_pfoa = lbxbfoa, n_pfos = lbxnfos,	sm_pfos = lbxmfos)
+
+
+```
+
+### Body Mass Data
+
+```{r load body mass data}
+
+bodymass_data_clean <- nhanes_load_data("BMX_I", "2015-2016", demographics = TRUE) %>% 
+  janitor::clean_names() %>% 
+  select(seqn, bmxbmi, bmxwt, bmiwt)
+
+
+```
+
+### Water Data
+
+```{r load water data}
+
+# Day 1 
+dietary_day1 <- nhanes_load_data("DR1TOT_I", "2015-2016") %>% 
+    select(SEQN, DR1_320Z, DR1_330Z, DR1BWATZ, DR1TWS) %>% 
+  janitor::clean_names() 
+
+# Day 2
+dietary_day2 <- nhanes_load_data("DR2TOT_I", "2015-2016") %>% 
+    select(SEQN, DR2_320Z, DR2_330Z, DR2BWATZ, DR2TWS) %>% 
+  janitor::clean_names()
+
+# Merge 2 dietary recalls
+water_data_clean <- 
+  pfas_data_clean %>% 
+  select(seqn) %>% 
+  left_join(dietary_day1,  by = "seqn") %>% 
+  left_join(dietary_day2,  by = "seqn") %>% 
+  mutate(avg_320z = (dr1_320z + dr2_320z) / 2,
+         avg_330z = (dr1_330z + dr2_320z) / 2,
+         avgbwatz = (dr1bwatz + dr2bwatz) / 2)
+         
+
+```
+
+### Merge Data
+
+```{r merge all data}
+
+# Merge all data
+aamehs_data = pfas_data_clean %>% 
+  left_join(bodymass_data_clean, by = "seqn") %>% 
+  left_join(water_data_clean, by = "seqn")
+
+# Clean environment
+rm(bodymass_data_clean, dietary_day1, dietary_day2, pfas_data_clean, water_data_clean)
+
+# Save out final dataset??
+
+
+```
+
