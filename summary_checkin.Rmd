@@ -292,22 +292,8 @@ water_matched %>%
   labs(title = "Daily water consumption (grams) in PFAS sample", y = "grams")
 ```
 
-```{r}
-water_matched %>%
-  mutate(source = case_when(
-      dr1tws = 1 ~ "community_supply", 
-      dr1tws = 2 ~  "well",
-      dr1tws = 3 ~ "spring",
-      dr1tws = 4 ~ "no_tap",
-      dr1tws = 91 ~ "other",
-      dr1tws = 99 ~ "dont_know")) %>% 
-  count(dr1tws)
-```
-<<<<<<< HEAD
-mtcars %>% 
-  mutate(cg = case_when(carb <= 2 ~ "low",
-                        carb > 2  ~ "high"))
-=======
+
+
 
 ### Sample Population characteristics
 
@@ -344,4 +330,38 @@ sd(aamehs_data$ridageyr)
 
 ```
 
->>>>>>> 93d5b164a2b3f9874e2cb4297af73188cabdd214
+
+### Exploratory
+
+#### Water Type and PFOA
+
+```{r}
+pfas_data_clean %>% 
+  left_join(water_matched, by = "seqn") %>%
+   rename(plain_water_gm = avg_320z,
+         tap_water_gm = avg_330z ,
+          bottled_water_gm = avgbwatz,
+         tap_water_source = avgtws) %>% 
+ 
+  ggplot(aes(x = tap_water_gm, y = n_pfos)) + 
+  geom_point() +
+  geom_smooth(se = TRUE)
+
+
+  
+ 
+pfas_data_clean %>% 
+  left_join(water_matched, by = "seqn") %>%
+   rename(plain_water_gm = avg_320z,
+         tap_water_gm = avg_330z ,
+          bottled_water_gm = avgbwatz,
+         tap_water_source = avgtws) %>% 
+  lm(n_pfos ~ tap_water_gm, .) %>% 
+  summary()
+
+```
+
+
+
+
+
