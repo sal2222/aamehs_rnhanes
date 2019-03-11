@@ -292,6 +292,15 @@ water_matched %>%
 
 ```{r}
 water_matched %>%
+  mutate(source = case_when(
+      dr1tws = 1 ~ "community_supply", 
+      dr1tws = 2 ~  "well",
+      dr1tws = 3 ~ "spring",
+      dr1tws = 4 ~ "no_tap",
+      dr1tws = 91 ~ "other",
+      dr1tws = 99 ~ "dont_know")) %>% 
   count(dr1tws)
 ```
-
+mtcars %>% 
+  mutate(cg = case_when(carb <= 2 ~ "low",
+                        carb > 2  ~ "high"))
