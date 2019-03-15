@@ -18,19 +18,27 @@ library(survey)
 
 ```
 
+
 ## Load and Merge Data
 
-### PFAS Data
+### PFAS Data and Demographics
 
-```{r load pfas data}
+```{r load pfas data and demographics}
 
 pfas_data_clean = nhanes_load_data("PFAS_I", "2015-2016", demographics = TRUE) %>% 
   janitor::clean_names() %>% 
-  select(seqn, cycle, sddsrvyr, riagendr, ridageyr, ridreth3, dmqmiliz, dmdeduc3, dmdeduc2, wtint2yr, wtmec2yr, lbxpfde:lbdmfosl) %>% 
-  rename(pfdea = lbxpfde, pfhxs = lbxpfhs, me_pfosa_acoh = lbxmpah,	pfna = lbxpfna, pfua = lbxpfua,	pfdoa = lbxpfdo, n_pfoa = lbxnfoa,	sb_pfoa = lbxbfoa, n_pfos = lbxnfos,	sm_pfos = lbxmfos)
+  select(seqn, cycle, sddsrvyr, riagendr, ridageyr, 
+         ridreth3, dmqmiliz, dmdeduc3, dmdeduc2, wtint2yr,
+         wtmec2yr, lbxpfde:lbdmfosl) %>% 
+  rename(pfdea = lbxpfde, pfhxs = lbxpfhs, me_pfosa_acoh = lbxmpah,	
+         pfna = lbxpfna, pfua = lbxpfua,	pfdoa = lbxpfdo, n_pfoa = lbxnfoa,
+         sb_pfoa = lbxbfoa, n_pfos = lbxnfos,	sm_pfos = lbxmfos)
 
+#https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/PFAS_I.htm
+#https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/DEMO_i.htm
 
 ```
+
 
 ### Body Mass Data
 
@@ -38,37 +46,68 @@ pfas_data_clean = nhanes_load_data("PFAS_I", "2015-2016", demographics = TRUE) %
 
 bodymass_data_clean <- nhanes_load_data("BMX_I", "2015-2016", demographics = TRUE) %>% 
   janitor::clean_names() %>% 
-  select(seqn, bmxbmi, bmxwt, bmiwt)
+  select(seqn, bmxbmi, bmxwt, bmiwt, bmxht,
+         bmiht, bmxwaist, bmiwaist, bmxarmc, bmiarmc)
 
+#https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/BMX_I.htm
 
 ```
+
+
+### Household Income
+
+```{r load income data}
+
+income_data_clean <- nhanes_load_data("DEMO_I", "2015-2016") %>% 
+  janitor::clean_names() %>% 
+  select(seqn, indhhin2, indfmin2, indfmpir)
+
+#https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/DEMO_i.htm
+
+```
+
+
+### Diabetes Status
+
+```{r load diabetes data}
+
+diabetes_data_clean <- nhanes_load_data("DIQ_I", "2015-2016") %>% 
+  janitor::clean_names() %>% 
+  select(seqn, diq010)
+
+#https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/DIQ_I.htm
+
+```
+
 
 ### Water Data
 
-```{r load water data}
+Decided not to use water variables because there was completely no association with outcome. 
+
+```{r load water data, include=FALSE}
 
 # Day 1 
-dietary_day1 <- nhanes_load_data("DR1TOT_I", "2015-2016") %>% 
-    select(SEQN, DR1_320Z, DR1_330Z, DR1BWATZ, DR1TWS) %>% 
-  janitor::clean_names() 
+#dietary_day1 <- nhanes_load_data("DR1TOT_I", "2015-2016") %>% 
+#    select(SEQN, DR1_320Z, DR1_330Z, DR1BWATZ, DR1TWS) %>% 
+#  janitor::clean_names() 
 
 # Day 2
-dietary_day2 <- nhanes_load_data("DR2TOT_I", "2015-2016") %>% 
-    select(SEQN, DR2_320Z, DR2_330Z, DR2BWATZ, DR2TWS) %>% 
-  janitor::clean_names()
+#dietary_day2 <- nhanes_load_data("DR2TOT_I", "2015-2016") %>% 
+#    select(SEQN, DR2_320Z, DR2_330Z, DR2BWATZ, DR2TWS) %>% 
+#  janitor::clean_names()
 
 # Merge 2 dietary recalls
-water_data_clean <- 
-  pfas_data_clean %>% 
-  select(seqn) %>% 
-  left_join(dietary_day1,  by = "seqn") %>% 
-  left_join(dietary_day2,  by = "seqn") %>% 
-  mutate(avg_320z = (dr1_320z + dr2_320z) / 2,
-         avg_330z = (dr1_330z + dr2_320z) / 2,
-         avgbwatz = (dr1bwatz + dr2bwatz) / 2)
+#water_data_clean <- 
+#  pfas_data_clean %>% 
+#  select(seqn) %>% 
+#  left_join(dietary_day1,  by = "seqn") %>% 
+#  left_join(dietary_day2,  by = "seqn") %>% 
+#  mutate(avg_320z = (dr1_320z + dr2_320z) / 2,
+#         avg_330z = (dr1_330z + dr2_320z) / 2,
+#         avgbwatz = (dr1bwatz + dr2bwatz) / 2)
          
-
 ```
+
 
 ### Merge Data
 
@@ -77,13 +116,41 @@ water_data_clean <-
 # Merge all data
 aamehs_data = pfas_data_clean %>% 
   left_join(bodymass_data_clean, by = "seqn") %>% 
-  left_join(water_data_clean, by = "seqn")
+  left_join(diabetes_data_clean, by = "seqn") %>% 
+  left_join(income_data_clean, by = "seqn")
 
 # Clean environment
-rm(bodymass_data_clean, dietary_day1, dietary_day2, pfas_data_clean, water_data_clean)
+rm(bodymass_data_clean, pfas_data_clean, income_data_clean, diabetes_data_clean)
 
-# Save out final dataset??
+```
 
+
+## Evaluate Missing
+
+```{r evaluate missing}
+
+aamehs_data %>% skimr::skim()
+
+# Drop n=177 who are missing PFAS data
+aamehs_data <- aamehs_data %>% 
+  filter(n_pfoa != "")
+
+aamehs_data %>% skimr::skim()
+
+# n=16 missing BMI --? drop???
+# n=57 missing houshold income
+# n=231 missing military status
+# case complete for diabetes, race/ethnicity, gender, age, education
+
+```
+
+
+## Write Out Working Dataset
+
+```{r write out working dataset}
+
+# Save out final dataset
+write_csv(aamehs_data, path = "./aamehs_data.csv")
 
 ```
 

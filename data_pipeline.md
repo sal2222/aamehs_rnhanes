@@ -4,70 +4,84 @@ Team LSD: Adnan, Jenni, Stephen
 February 26, 2019
 
 -   [Load and Merge Data](#load-and-merge-data)
-    -   [PFAS Data](#pfas-data)
+    -   [PFAS Data and Demographics](#pfas-data-and-demographics)
     -   [Body Mass Data](#body-mass-data)
+    -   [Household Income](#household-income)
+    -   [Diabetes Status](#diabetes-status)
     -   [Water Data](#water-data)
     -   [Merge Data](#merge-data)
+-   [Evaluate Missing](#evaluate-missing)
+-   [Write Out Working Dataset](#write-out-working-dataset)
 
 Load and Merge Data
 -------------------
 
-### PFAS Data
+### PFAS Data and Demographics
 
 ``` r
 pfas_data_clean = nhanes_load_data("PFAS_I", "2015-2016", demographics = TRUE) %>% 
   janitor::clean_names() %>% 
-  select(seqn, cycle, sddsrvyr, riagendr, ridageyr, ridreth3, dmqmiliz, dmdeduc3, dmdeduc2, wtint2yr, wtmec2yr, lbxpfde:lbdmfosl) %>% 
-  rename(pfdea = lbxpfde, pfhxs = lbxpfhs, me_pfosa_acoh = lbxmpah, pfna = lbxpfna, pfua = lbxpfua, pfdoa = lbxpfdo, n_pfoa = lbxnfoa,  sb_pfoa = lbxbfoa, n_pfos = lbxnfos,    sm_pfos = lbxmfos)
+  select(seqn, cycle, sddsrvyr, riagendr, ridageyr, 
+         ridreth3, dmqmiliz, dmdeduc3, dmdeduc2, wtint2yr,
+         wtmec2yr, lbxpfde:lbdmfosl) %>% 
+  rename(pfdea = lbxpfde, pfhxs = lbxpfhs, me_pfosa_acoh = lbxmpah, 
+         pfna = lbxpfna, pfua = lbxpfua,    pfdoa = lbxpfdo, n_pfoa = lbxnfoa,
+         sb_pfoa = lbxbfoa, n_pfos = lbxnfos,   sm_pfos = lbxmfos)
 ```
 
-    ## Downloading PFAS_I.XPT to C:\Users\jenni\AppData\Local\Temp\RtmpQVhxvM/PFAS_I.XPT
+    ## Downloading PFAS_I.XPT to C:\Users\jenni\AppData\Local\Temp\Rtmp002jvb/PFAS_I.XPT
 
-    ## Downloading DEMO_I.XPT to C:\Users\jenni\AppData\Local\Temp\RtmpQVhxvM/DEMO_I.XPT
+    ## Downloading DEMO_I.XPT to C:\Users\jenni\AppData\Local\Temp\Rtmp002jvb/DEMO_I.XPT
 
-    ## Caching CSV to C:\Users\jenni\AppData\Local\Temp\RtmpQVhxvM/DEMO_I.csv
+    ## Caching CSV to C:\Users\jenni\AppData\Local\Temp\Rtmp002jvb/DEMO_I.csv
+
+``` r
+#https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/PFAS_I.htm
+#https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/DEMO_i.htm
+```
 
 ### Body Mass Data
 
 ``` r
 bodymass_data_clean <- nhanes_load_data("BMX_I", "2015-2016", demographics = TRUE) %>% 
   janitor::clean_names() %>% 
-  select(seqn, bmxbmi, bmxwt, bmiwt)
+  select(seqn, bmxbmi, bmxwt, bmiwt, bmxht,
+         bmiht, bmxwaist, bmiwaist, bmxarmc, bmiarmc)
 ```
 
-    ## Downloading BMX_I.XPT to C:\Users\jenni\AppData\Local\Temp\RtmpQVhxvM/BMX_I.XPT
+    ## Downloading BMX_I.XPT to C:\Users\jenni\AppData\Local\Temp\Rtmp002jvb/BMX_I.XPT
+
+``` r
+#https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/BMX_I.htm
+```
+
+### Household Income
+
+``` r
+income_data_clean <- nhanes_load_data("DEMO_I", "2015-2016") %>% 
+  janitor::clean_names() %>% 
+  select(seqn, indhhin2, indfmin2, indfmpir)
+
+#https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/DEMO_i.htm
+```
+
+### Diabetes Status
+
+``` r
+diabetes_data_clean <- nhanes_load_data("DIQ_I", "2015-2016") %>% 
+  janitor::clean_names() %>% 
+  select(seqn, diq010)
+```
+
+    ## Downloading DIQ_I.XPT to C:\Users\jenni\AppData\Local\Temp\Rtmp002jvb/DIQ_I.XPT
+
+``` r
+#https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/DIQ_I.htm
+```
 
 ### Water Data
 
-``` r
-# Day 1 
-dietary_day1 <- nhanes_load_data("DR1TOT_I", "2015-2016") %>% 
-    select(SEQN, DR1_320Z, DR1_330Z, DR1BWATZ, DR1TWS) %>% 
-  janitor::clean_names() 
-```
-
-    ## Downloading DR1TOT_I.XPT to C:\Users\jenni\AppData\Local\Temp\RtmpQVhxvM/DR1TOT_I.XPT
-
-``` r
-# Day 2
-dietary_day2 <- nhanes_load_data("DR2TOT_I", "2015-2016") %>% 
-    select(SEQN, DR2_320Z, DR2_330Z, DR2BWATZ, DR2TWS) %>% 
-  janitor::clean_names()
-```
-
-    ## Downloading DR2TOT_I.XPT to C:\Users\jenni\AppData\Local\Temp\RtmpQVhxvM/DR2TOT_I.XPT
-
-``` r
-# Merge 2 dietary recalls
-water_data_clean <- 
-  pfas_data_clean %>% 
-  select(seqn) %>% 
-  left_join(dietary_day1,  by = "seqn") %>% 
-  left_join(dietary_day2,  by = "seqn") %>% 
-  mutate(avg_320z = (dr1_320z + dr2_320z) / 2,
-         avg_330z = (dr1_330z + dr2_320z) / 2,
-         avgbwatz = (dr1bwatz + dr2bwatz) / 2)
-```
+Decided not to use water variables because there was completely no association with outcome.
 
 ### Merge Data
 
@@ -75,10 +89,237 @@ water_data_clean <-
 # Merge all data
 aamehs_data = pfas_data_clean %>% 
   left_join(bodymass_data_clean, by = "seqn") %>% 
-  left_join(water_data_clean, by = "seqn")
+  left_join(diabetes_data_clean, by = "seqn") %>% 
+  left_join(income_data_clean, by = "seqn")
 
 # Clean environment
-rm(bodymass_data_clean, dietary_day1, dietary_day2, pfas_data_clean, water_data_clean)
+rm(bodymass_data_clean, pfas_data_clean, income_data_clean, diabetes_data_clean)
+```
 
-# Save out final dataset??
+Evaluate Missing
+----------------
+
+``` r
+aamehs_data %>% skimr::skim()
+```
+
+    ## Skim summary statistics
+    ##  n obs: 2170 
+    ##  n variables: 44 
+    ## 
+    ## -- Variable type:character ------------------------------------------------------------------
+    ##  variable missing complete    n min max empty n_unique
+    ##     cycle       0     2170 2170   9   9     0        1
+    ## 
+    ## -- Variable type:integer --------------------------------------------------------------------
+    ##  variable missing complete    n  mean    sd p0 p25 p50 p75 p100     hist
+    ##  indfmin2      62     2108 2170 11.14 15.18  1   5   8  14   99 <U+2587><U+2583><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##  indhhin2      69     2101 2170 11.46 15.06  1   6   8  14   99 <U+2587><U+2583><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ## 
+    ## -- Variable type:numeric --------------------------------------------------------------------
+    ##       variable missing complete    n       mean        sd       p0
+    ##        bmiarmc    2078       92 2170     1          0         1   
+    ##          bmiht    2146       24 2170     2.92       0.41      1   
+    ##       bmiwaist    2060      110 2170     1          0         1   
+    ##          bmiwt    2082       88 2170     3.05       0.34      1   
+    ##        bmxarmc     114     2056 2170    32.54       5.53     19.2 
+    ##         bmxbmi      23     2147 2170    28.67       7.15     13.7 
+    ##          bmxht      22     2148 2170   165.87      10.09    136.1 
+    ##       bmxwaist     133     2037 2170    96.95      17.93     57.6 
+    ##          bmxwt      23     2147 2170    79.25      22.4      29.1 
+    ##         diq010       0     2170 2170     1.91       0.41      1   
+    ##       dmdeduc2     419     1751 2170     3.47       1.28      1   
+    ##       dmdeduc3    1751      419 2170     9.23       3.69      5   
+    ##       dmqmiliz     284     1886 2170     1.91       0.28      1   
+    ##       indfmpir     221     1949 2170     2.37       1.6       0   
+    ##       lbdbfoal     177     1993 2170     0.98       0.14      0   
+    ##       lbdmfosl     177     1993 2170     0.012      0.11      0   
+    ##       lbdmpahl     177     1993 2170     0.61       0.49      0   
+    ##       lbdnfoal     177     1993 2170     0.008      0.089     0   
+    ##       lbdnfosl     177     1993 2170     0.0055     0.074     0   
+    ##       lbdpfdel     177     1993 2170     0.34       0.47      0   
+    ##       lbdpfdol     177     1993 2170     0.98       0.15      0   
+    ##       lbdpfhsl     177     1993 2170     0.016      0.12      0   
+    ##       lbdpfnal     177     1993 2170     0.013      0.11      0   
+    ##       lbdpfual     177     1993 2170     0.62       0.48      0   
+    ##  me_pfosa_acoh     177     1993 2170     0.17       0.27      0.07
+    ##         n_pfoa     177     1993 2170     1.81       1.63      0.07
+    ##         n_pfos     177     1993 2170     5.1        6.84      0.07
+    ##          pfdea     177     1993 2170     0.26       0.45      0.07
+    ##          pfdoa     177     1993 2170     0.072      0.014     0.07
+    ##          pfhxs     177     1993 2170     1.61       1.75      0.07
+    ##           pfna     177     1993 2170     0.78       0.7       0.07
+    ##           pfua     177     1993 2170     0.16       0.26      0.07
+    ##       riagendr       0     2170 2170     1.52       0.5       1   
+    ##       ridageyr       0     2170 2170    42.72      20.79     12   
+    ##       ridreth3       0     2170 2170     3.25       1.66      1   
+    ##        sb_pfoa     177     1993 2170     0.072      0.02      0.07
+    ##       sddsrvyr       0     2170 2170     9          0         9   
+    ##           seqn       0     2170 2170 88713.39    2889.28  83736   
+    ##        sm_pfos     177     1993 2170     1.94       1.88      0.07
+    ##       wtint2yr       0     2170 2170 37767.53   36795.32   5330.96
+    ##       wtmec2yr       0     2170 2170 39268.15   37812.03   5470.04
+    ##       p25      p50      p75      p100     hist
+    ##      1        1        1         1    <U+2581><U+2581><U+2581><U+2587><U+2581><U+2581><U+2581><U+2581>
+    ##      3        3        3         3    <U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2587>
+    ##      1        1        1         1    <U+2581><U+2581><U+2581><U+2587><U+2581><U+2581><U+2581><U+2581>
+    ##      3        3        3         4    <U+2581><U+2581><U+2581><U+2581><U+2581><U+2587><U+2581><U+2581>
+    ##     28.6     32.2     36        55.8  <U+2581><U+2585><U+2587><U+2587><U+2583><U+2581><U+2581><U+2581>
+    ##     23.5     27.7     32.5      64.5  <U+2582><U+2587><U+2587><U+2583><U+2582><U+2581><U+2581><U+2581>
+    ##    158.4    165.65   172.9     202.7  <U+2581><U+2582><U+2587><U+2587><U+2587><U+2583><U+2581><U+2581>
+    ##     83.8     96.2    108.1     165    <U+2582><U+2586><U+2587><U+2587><U+2583><U+2581><U+2581><U+2581>
+    ##     63.35    76.1     91.4     181.5  <U+2581><U+2586><U+2587><U+2585><U+2582><U+2581><U+2581><U+2581>
+    ##      2        2        2         9    <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##      3        4        4         9    <U+2586><U+2586><U+2587><U+2586><U+2581><U+2581><U+2581><U+2581>
+    ##      7        9       11        66    <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##      2        2        2         2    <U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2587>
+    ##      1.03     1.91     3.73      5    <U+2585><U+2587><U+2587><U+2585><U+2583><U+2582><U+2582><U+2587>
+    ##      1        1        1         1    <U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2587>
+    ##      0        0        0         1    <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##      0        1        1         1    <U+2585><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2587>
+    ##      0        0        0         1    <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##      0        0        0         1    <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##      0        0        1         1    <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2585>
+    ##      1        1        1         1    <U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2587>
+    ##      0        0        0         1    <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##      0        0        0         1    <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##      0        1        1         1    <U+2585><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2587>
+    ##      0.07     0.07     0.2       4.2  <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##      0.9      1.4      2.2      20.4  <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##      1.8      3.1      5.7     109.9  <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##      0.07     0.1      0.3       6.5  <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##      0.07     0.07     0.07      0.3  <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##      0.6      1.2      1.9      23.3  <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##      0.4      0.6      1        11    <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##      0.07     0.07     0.2       4.2  <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##      1        2        2         2    <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2587>
+    ##     24       41       60        80    <U+2587><U+2585><U+2585><U+2585><U+2585><U+2585><U+2583><U+2585>
+    ##      2        3        4         7    <U+2585><U+2583><U+2587><U+2586><U+2581><U+2581><U+2583><U+2581>
+    ##      0.07     0.07     0.07      0.5  <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##      9        9        9         9    <U+2581><U+2581><U+2581><U+2587><U+2581><U+2581><U+2581><U+2581>
+    ##  86245.5  88693.5  91258     93700    <U+2587><U+2587><U+2587><U+2587><U+2587><U+2587><U+2587><U+2587>
+    ##      0.7      1.4      2.5      19.2  <U+2587><U+2582><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##  16377.25 23589.95 38981.1  233755.84 <U+2587><U+2582><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##  16923.49 24817.01 41288.11 242386.66 <U+2587><U+2582><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+
+``` r
+# Drop n=177 who are missing PFAS data
+aamehs_data <- aamehs_data %>% 
+  filter(n_pfoa != "")
+
+aamehs_data %>% skimr::skim()
+```
+
+    ## Skim summary statistics
+    ##  n obs: 1993 
+    ##  n variables: 44 
+    ## 
+    ## -- Variable type:character ------------------------------------------------------------------
+    ##  variable missing complete    n min max empty n_unique
+    ##     cycle       0     1993 1993   9   9     0        1
+    ## 
+    ## -- Variable type:integer --------------------------------------------------------------------
+    ##  variable missing complete    n  mean    sd p0 p25 p50 p75 p100     hist
+    ##  indfmin2      53     1940 1993 11.2  15.33  1   5   8  14   99 <U+2587><U+2583><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##  indhhin2      57     1936 1993 11.51 15.19  1   6   8  14   99 <U+2587><U+2583><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ## 
+    ## -- Variable type:numeric --------------------------------------------------------------------
+    ##       variable missing complete    n       mean        sd       p0
+    ##        bmiarmc    1923       70 1993     1          0         1   
+    ##          bmiht    1971       22 1993     2.91       0.43      1   
+    ##       bmiwaist    1907       86 1993     1          0         1   
+    ##          bmiwt    1926       67 1993     3.03       0.35      1   
+    ##        bmxarmc      85     1908 1993    32.68       5.5      19.6 
+    ##         bmxbmi      16     1977 1993    28.85       7.15     14.5 
+    ##          bmxht      15     1978 1993   166.12      10.05    136.1 
+    ##       bmxwaist     101     1892 1993    97.44      17.81     59.7 
+    ##          bmxwt      16     1977 1993    79.98      22.39     35.7 
+    ##         diq010       0     1993 1993     1.91       0.42      1   
+    ##       dmdeduc2     353     1640 1993     3.46       1.28      1   
+    ##       dmdeduc3    1640      353 1993     9.32       3.88      5   
+    ##       dmqmiliz     231     1762 1993     1.91       0.28      1   
+    ##       indfmpir     201     1792 1993     2.39       1.6       0   
+    ##       lbdbfoal       0     1993 1993     0.98       0.14      0   
+    ##       lbdmfosl       0     1993 1993     0.012      0.11      0   
+    ##       lbdmpahl       0     1993 1993     0.61       0.49      0   
+    ##       lbdnfoal       0     1993 1993     0.008      0.089     0   
+    ##       lbdnfosl       0     1993 1993     0.0055     0.074     0   
+    ##       lbdpfdel       0     1993 1993     0.34       0.47      0   
+    ##       lbdpfdol       0     1993 1993     0.98       0.15      0   
+    ##       lbdpfhsl       0     1993 1993     0.016      0.12      0   
+    ##       lbdpfnal       0     1993 1993     0.013      0.11      0   
+    ##       lbdpfual       0     1993 1993     0.62       0.48      0   
+    ##  me_pfosa_acoh       0     1993 1993     0.17       0.27      0.07
+    ##         n_pfoa       0     1993 1993     1.81       1.63      0.07
+    ##         n_pfos       0     1993 1993     5.1        6.84      0.07
+    ##          pfdea       0     1993 1993     0.26       0.45      0.07
+    ##          pfdoa       0     1993 1993     0.072      0.014     0.07
+    ##          pfhxs       0     1993 1993     1.61       1.75      0.07
+    ##           pfna       0     1993 1993     0.78       0.7       0.07
+    ##           pfua       0     1993 1993     0.16       0.26      0.07
+    ##       riagendr       0     1993 1993     1.52       0.5       1   
+    ##       ridageyr       0     1993 1993    43.36      20.56     12   
+    ##       ridreth3       0     1993 1993     3.22       1.65      1   
+    ##        sb_pfoa       0     1993 1993     0.072      0.02      0.07
+    ##       sddsrvyr       0     1993 1993     9          0         9   
+    ##           seqn       0     1993 1993 88695.83    2873.12  83736   
+    ##        sm_pfos       0     1993 1993     1.94       1.88      0.07
+    ##       wtint2yr       0     1993 1993 38312.82   37305.07   5330.96
+    ##       wtmec2yr       0     1993 1993 39814.37   38263.18   5470.04
+    ##       p25      p50      p75      p100     hist
+    ##      1        1        1         1    <U+2581><U+2581><U+2581><U+2587><U+2581><U+2581><U+2581><U+2581>
+    ##      3        3        3         3    <U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2587>
+    ##      1        1        1         1    <U+2581><U+2581><U+2581><U+2587><U+2581><U+2581><U+2581><U+2581>
+    ##      3        3        3         4    <U+2581><U+2581><U+2581><U+2581><U+2581><U+2587><U+2581><U+2581>
+    ##     28.8     32.4     36        55.8  <U+2581><U+2585><U+2587><U+2587><U+2583><U+2581><U+2581><U+2581>
+    ##     23.7     27.8     32.8      64.5  <U+2582><U+2587><U+2587><U+2583><U+2581><U+2581><U+2581><U+2581>
+    ##    158.72   165.9    173.2     202.7  <U+2581><U+2582><U+2586><U+2587><U+2587><U+2583><U+2581><U+2581>
+    ##     84.4     96.5    108.2     165    <U+2582><U+2586><U+2587><U+2587><U+2583><U+2581><U+2581><U+2581>
+    ##     63.8     76.9     92.1     181.5  <U+2582><U+2587><U+2587><U+2585><U+2582><U+2581><U+2581><U+2581>
+    ##      2        2        2         9    <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##      3        4        4         9    <U+2586><U+2586><U+2587><U+2586><U+2581><U+2581><U+2581><U+2581>
+    ##      7        9       11        66    <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##      2        2        2         2    <U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2587>
+    ##      1.03     1.96     3.75      5    <U+2585><U+2587><U+2586><U+2585><U+2583><U+2582><U+2582><U+2587>
+    ##      1        1        1         1    <U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2587>
+    ##      0        0        0         1    <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##      0        1        1         1    <U+2585><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2587>
+    ##      0        0        0         1    <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##      0        0        0         1    <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##      0        0        1         1    <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2585>
+    ##      1        1        1         1    <U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2587>
+    ##      0        0        0         1    <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##      0        0        0         1    <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##      0        1        1         1    <U+2585><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2587>
+    ##      0.07     0.07     0.2       4.2  <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##      0.9      1.4      2.2      20.4  <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##      1.8      3.1      5.7     109.9  <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##      0.07     0.1      0.3       6.5  <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##      0.07     0.07     0.07      0.3  <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##      0.6      1.2      1.9      23.3  <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##      0.4      0.6      1        11    <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##      0.07     0.07     0.2       4.2  <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##      1        2        2         2    <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2587>
+    ##     25       43       61        80    <U+2587><U+2585><U+2585><U+2585><U+2585><U+2586><U+2585><U+2585>
+    ##      2        3        4         7    <U+2585><U+2583><U+2587><U+2586><U+2581><U+2581><U+2583><U+2581>
+    ##      0.07     0.07     0.07      0.5  <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##      9        9        9         9    <U+2581><U+2581><U+2581><U+2587><U+2581><U+2581><U+2581><U+2581>
+    ##  86242    88719    91213     93700    <U+2587><U+2587><U+2587><U+2587><U+2587><U+2587><U+2587><U+2587>
+    ##      0.7      1.4      2.5      19.2  <U+2587><U+2582><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##  16650.08 23933.85 40126.23 233755.84 <U+2587><U+2582><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##  17179.74 24913.2  42067.87 242386.66 <U+2587><U+2582><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+
+``` r
+# n=16 missing BMI --? drop???
+# n=57 missing houshold income
+# n=231 missing military status
+# case complete for diabetes, race/ethnicity, gender, age, education
+```
+
+Write Out Working Dataset
+-------------------------
+
+``` r
+# Save out final dataset
+write_csv(aamehs_data, path = "./aamehs_data.csv")
 ```
