@@ -3,7 +3,7 @@ title: "data_pipeline"
 author: "Team LSD: Adnan, Jenni, Stephen"
 date: "February 26, 2019"
 output: 
-  github_document:
+  html_document:
     toc: true
     toc_depth: 3
 ---
