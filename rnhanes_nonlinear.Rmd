@@ -1,0 +1,400 @@
+---
+title: "rnhanes_nonlinear"
+author: "SL"
+date: "March 22, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(mgcv)
+library(splines)
+
+```
+
+Load dataset from pipeline output
+```{r load}
+pfas <- read.csv("aamehs_data.csv") %>% 
+   select(seqn, riagendr, ridageyr, ridreth3, indfmpir, pfdea, pfhxs, me_pfosa_acoh, pfna, pfua, pfdoa, n_pfoa, sb_pfoa, n_pfos, sm_pfos, bmxbmi) %>% 
+  mutate(riagendr = factor(riagendr),
+         ridreth3 = factor(ridreth3)) %>% 
+  drop_na(bmxbmi)
+
+glimpse(pfas)
+
+
+#check for missing values
+pfas %>% 
+  select_if(function(x) any(is.na(x))) %>% 
+  summarise_each(funs(sum(is.na(.)))) 
+```
+
+Missing values: 
+indfmpir = 201  -- too high!, HH education level instead?
+bmxbmi = 16
+
+RIAGENDR - Gender
+RIDAGEYR - Age in years at screening
+RIDRETH3 - Race/Hispanic origin w/ NH Asian
+DMQMILIZ - Served active duty in US Armed Forces
+
+## Linear
+Need an SES term --- finding negative association???
+```{r pfoa_linear_model}
+pfoa_linear <- lm(bmxbmi ~ n_pfoa + riagendr + ridageyr + ridreth3, 
+              data = pfas)
+
+summary(pfoa_linear)
+
+
+pfoa_linear %>% 
+  predict(., se.fit = TRUE, type = "terms" ) %>% 
+  as.data.frame(.) %>% 
+  mutate(pred = fit.n_pfoa) %>% 
+  select(pred) %>% 
+  bind_cols(pfas) %>% 
+  mutate(pred_bmi = pred + mean(bmxbmi)) %>% 
+  ggplot(., aes(x = n_pfoa)) + 
+    geom_line(aes(y = pred_bmi)) + 
+    xlab("n_pfoa") + 
+    ylab("Predicted BMI") 
+
+
+```
+
+
+```{r pfos_linear}
+pfos_linear <- lm(bmxbmi ~ n_pfos + riagendr + ridageyr + ridreth3, 
+              data = pfas)
+
+summary(pfos_linear)
+```
+
+
+## Natural Spline Term 
+
+
+```{r pfoa_natural_spline}
+
+ns_pfoa <- lm(bmxbmi ~ ns(n_pfos, df = 3) + + riagendr + ridageyr + ridreth3, data = pfas)
+
+summary(ns_pfoa)
+AIC(ns_pfoa)
+
+ns_pfoa %>% 
+ predict(., se.fit = TRUE, type = "terms" ) %>% 
+ as.data.frame(.) %>% 
+  mutate(pred = fit.ns.n_pfos..df...3.,
+         se = se.fit.ns.n_pfos..df...3.,
+         lci = pred - 1.96*se,
+         uci = pred + 1.96*se) %>%
+  select(pred, se, lci, uci) %>% 
+  bind_cols(pfas) %>% 
+  mutate(pred_bmi = pred + mean(bmxbmi),
+         lci_bmi = lci + mean(bmxbmi),
+         uci_bmi = uci + mean(bmxbmi)) %>% 
+  ggplot(., aes(n_pfoa)) + 
+      geom_line(aes(y = pred_bmi)) + 
+      geom_line(aes(y = lci_bmi), color = "darkgrey") + 
+      geom_line(aes(y = uci_bmi), color = "darkgrey") + 
+      xlab("n_pfoa") + 
+      ylab("Predicted BMI (95% CI)") +
+      ylim(20,35)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# 4L Create natural spline with gam()
+
+mod.ns.gam.3 <- gam(aveBMI ~ ns(avePM.idw, df = 3) + maleunemp  + femaleunemp + ltHS + medhinc + medhval + 
+                 per.black + per.latinx + per.asnam + climate_region, data = df)
+termplot(mod.ns.gam.3, se = TRUE)
+
+
+########################################
+##### 5: Penalized Spline Term  ########
+########################################
+# 5a Construct model
+# we can constuct penalized splines within gam() 
+# default is 10 knots 
+# only increase if need >~8.5 edf 
+# (estimated degrees of freedom, vs. user-defined)
+# penalty is estimated -- the model selects the penalty 
+# that leads to the highest gcv
+
+mod.ps <- gam(aveBMI ~ s(avePM.idw) + maleunemp  + femaleunemp + ltHS + medhinc + medhval + 
+                per.black + per.latinx + per.asnam + climate_region, data = df)
+
+# 5b Model Summary 
+
+summary(mod.ps)
+
+# 5c Extract Penalty 
+# this is the penalty estimated by the model 
+
+mod.ps$sp
+
+# 5d Model Plot 
+# plot.gam offers a nice default plot
+# a quick way to plot the change in predicted aveBMI with avePM.idw
+
+plot(mod.ps)
+
+# 5e Plot with ggplot 
+# we can also recreate this plot with ggplot
+
+# 5e construct predictions based on the model
+
+predBMI.ps <- predict(mod.ps, se.fit = TRUE, type = "terms" )
+
+# 5f convert to dataframe 
+
+predBMI.ps <- as.data.frame(predBMI.ps)
+
+# 5g Combine predictions and standard errors
+# it just has different names since its one term 
+
+predBMI.ps <- predBMI.ps %>% 
+  mutate( pred = fit.s.avePM.idw.,
+          se = se.fit.s.avePM.idw.)
+
+# 5h Compute 95% confidence intervals 
+
+predBMI.ps <- predBMI.ps %>% 
+  mutate( lci = pred - 1.96*se,
+          uci = pred + 1.96*se)
+
+# 5i Keep only variables we need 
+
+predBMI.ps2 <- predBMI.ps %>% select(pred, se, lci, uci)
+
+# 5j Combine with data 
+
+predBMI.ps2 <- predBMI.ps2 %>% bind_cols(df)
+
+# 5k Uncenter data 
+
+predBMI.ps2 <- predBMI.ps2 %>% mutate(predBMI = pred + mean(aveBMI),
+                                      lciBMI = lci + mean(aveBMI),
+                                      uciBMI = uci + mean(aveBMI))
+# 5l Plot
+
+ggplot(predBMI.ps2, aes(avePM.idw)) + 
+  geom_line(aes(y = predBMI)) + 
+  geom_line(aes(y = lciBMI), color = "darkgrey") + 
+  geom_line(aes(y = uciBMI), color = "darkgrey") + 
+  xlab(expression("Average Annual PM"[2.5])) + 
+  ylab("Predicted BMI (95% CI)") + 
+  ylim(26, 29)
+
+#########################################################
+##### Footnote: Plotting All the Models Together ########
+#########################################################
+# create a column of TermName for each dataframe of predictions 
+# we will use this column to keep track of which model 
+# the predictions came from 
+
+# A Create linear model 
+predBMI.lin  <- predict(mod.lin, se.fit = TRUE, type = "terms" )
+predBMI.lin  <- as.data.frame(predBMI.lin)
+predBMI.lin  <- predBMI.lin %>% mutate(pred = fit.avePM.idw)
+predBMI.lin2 <- predBMI.lin %>% select(pred)
+predBMI.lin2 <- predBMI.lin2 %>% bind_cols(df)
+predBMI.lin2 <- predBMI.lin2 %>% mutate(predBMI = pred + mean(aveBMI))
+
+# B Create a column with the model name 
+# we will use this to keep track of the models once we combine them
+predBMI.lin3  <- predBMI.lin2  %>% mutate(ModelName = "Linear")
+predBMI.quad3 <- predBMI.quad2 %>% mutate(ModelName = "Quadratic Term")
+predBMI.pls3  <- predBMI.pls2  %>% mutate(ModelName = "Piecewise Linear Spline")
+predBMI.ns.3.3<- predBMI.ns.3.2%>% mutate(ModelName = "Natural Spline 3 df")
+predBMI.ps3   <- predBMI.ps2   %>% mutate(ModelName = "Penalized Spline")
+
+# C Combine the predictions 
+
+predBMI.tot <- bind_rows(predBMI.lin3,
+                         predBMI.quad3, 
+                         predBMI.pls3,
+                         predBMI.ns.3.3,
+                         predBMI.ps3)
+# D Plot!
+
+all.models.plot <-  ggplot(predBMI.tot, aes(avePM.idw)) + 
+  geom_line(aes(y = predBMI, color = ModelName)) + 
+  xlab(expression("Average Annual PM"[2.5])) + 
+  ylab("Predicted BMI") + 
+  ylim(26, 29)
+
+all.models.plot 
+
+# save plot as a pdf
+pdf(paste0(OutputPath, "all_models_plot.pdf"), width = 10)
+all.models.plot
+dev.off()
+
+###################################
+##### Footnote: Cubic Term ########
+###################################
+# A Create model 
+# we can create new terms within the model statement 
+# using the I() command 
+
+mod.cub <- lm(aveBMI ~ avePM.idw + I(avePM.idw^2) + I(avePM.idw^3) + 
+              maleunemp  + femaleunemp + ltHS + medhinc + medhval +
+              per.black + per.latinx + per.asnam + climate_region, 
+              data = df)
+
+# B Model Summary 
+
+summary(mod.cub)
+
+# C Construct predictions based on the model
+
+predBMI <- predict(mod.cub, se.fit = TRUE, type = "terms" )
+
+# D convert to dataframe 
+
+predBMI <- as.data.frame(predBMI)
+
+# E Combine predictions and standard errors
+
+predBMI <- predBMI %>% 
+  mutate( pred = fit.avePM.idw + fit.I.avePM.idw.2.+ fit.I.avePM.idw.3.,
+          se = se.fit.avePM.idw + se.fit.I.avePM.idw.2.+ se.fit.I.avePM.idw.3.)
+
+# F Compute 95% confidence intervals 
+
+predBMI <- predBMI %>% 
+  mutate( lci = pred - 1.96*se,
+          uci = pred + 1.96*se)
+
+# G Keep only variables we need 
+
+predBMI2 <- predBMI %>% select(pred, se, lci, uci)
+
+# H Combine with data 
+
+predBMI2 <- predBMI2 %>% bind_cols(df)
+
+# I Plot
+
+ggplot(predBMI2, aes(avePM.idw)) + 
+  geom_line(aes(y = pred)) + 
+  geom_line(aes(y = lci), color = "darkgrey") + 
+  geom_line(aes(y = uci), color = "darkgrey") + 
+  xlab(expression("Average Annual PM"[2.5])) + 
+  ylab("Predicted aveBMI")
+
+#######################################
+##### Footnote: Multiple Plots ########
+#######################################
+# A Create predictions and 95% CI for 2 df
+# A1 Create predictions for 2 degrees of freedom
+predBMI <- predict(mod.ns.2, se.fit = TRUE, type = "terms" )
+# A2Convert to dataframe 
+predBMI <- as.data.frame(predBMI)
+# A3 Combine predictions and standard errors
+predBMI <- predBMI %>% 
+  mutate( pred = fit.ns.avePM.idw..df...2.,
+          se = se.fit.ns.avePM.idw..df...2.)
+# A4 Compute 95% confidence intervals 
+predBMI <- predBMI %>% 
+  mutate( lci = pred - 1.96*se,
+          uci = pred + 1.96*se)
+# A5 Keep only variables we need 
+predBMI2 <- predBMI %>% select(pred, se, lci, uci) %>% 
+  mutate(Model = "2 df")
+# A6 Combine with data 
+predBMI.2 <- predBMI2 %>% bind_cols(df)
+
+# B Create predictions and 95% CI for 3 df
+# B1 Create predictions for 3 degrees of freedom
+predBMI <- predict(mod.ns.3, se.fit = TRUE, type = "terms" )
+# B2 convert to dataframe 
+predBMI <- as.data.frame(predBMI)
+# B3 Combine predictions and standard errors
+predBMI <- predBMI %>% 
+  mutate( pred = fit.ns.avePM.idw..df...3.,
+          se = se.fit.ns.avePM.idw..df...3.)
+# B4 Compute 95% confidence intervals 
+predBMI <- predBMI %>% 
+  mutate( lci = pred - 1.96*se,
+          uci = pred + 1.96*se)
+# B5 Keep only variables we need
+predBMI2 <- predBMI %>% select(pred, se, lci, uci)%>% 
+  mutate(Model = "3 df")
+# B6 Combine with data 
+predBMI.3 <- predBMI2 %>% bind_cols(df)
+
+# C Create predictions and 95% CI for 4 df
+# C1 Create predictions for 4 degrees of freedom
+predBMI <- predict(mod.ns.4, se.fit = TRUE, type = "terms" )
+# C2 convert to dataframe 
+predBMI <- as.data.frame(predBMI)
+# C3 Combine predictions and standard errors
+predBMI <- predBMI %>% 
+  mutate( pred = fit.ns.avePM.idw..df...4.,
+          se = se.fit.ns.avePM.idw..df...4.)
+# C4 Compute 95% confidence intervals 
+predBMI <- predBMI %>% 
+  mutate( lci = pred - 1.96*se,
+          uci = pred + 1.96*se)
+# C5 Keep only variables we need
+predBMI2 <- predBMI %>% select(pred, se, lci, uci) %>% 
+  mutate(Model = "4 df")
+# C6 Combine with data 
+predBMI.4 <- predBMI2 %>% bind_cols(df)
+# C7 combine all the data 
+allModels <- bind_rows(predBMI.2, predBMI.3, predBMI.4)
+
+# D Uncenter the data - add mean aveBMI
+allModels <- allModels %>% mutate(predBMI = pred + mean(aveBMI),
+                                  lciBMI = lci + mean(aveBMI),
+                                  uciBMI = uci + mean(aveBMI))
+
+# E Plot 
+
+pdf(paste0(OutputPath, "three_ns_model_plot.pdf"))
+
+# no confidence intervals
+ggplot(allModels, aes(avePM.idw)) + 
+  geom_line(aes(y = predBMI, color = Model)) + 
+  xlab(expression("Average Annual PM"[2.5])) + 
+  ylab("Predicted BMI") + 
+  ylim(26, 29)
+
+# confidence intervals
+ggplot(allModels, aes(avePM.idw)) + 
+  geom_line(aes(y = predBMI, color = Model)) + 
+  geom_line(aes(y = lciBMI, color = Model), alpha = 0.1) + 
+  geom_line(aes(y = uciBMI, color = Model), alpha = 0.1) + 
+  xlab(expression("Average Annual PM"[2.5])) + 
+  ylab("Predicted BMI (95% CI)") + 
+  ylim(26, 29)
+
+dev.off()
+
+
+
+
+
+
+
