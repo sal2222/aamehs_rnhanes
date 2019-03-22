@@ -359,6 +359,32 @@ pfas_data_clean %>%
   lm(n_pfos ~ tap_water_gm, .) %>% 
   summary()
 
+
+
+
+
+pfas_data_clean %>% 
+  left_join(water_matched, by = "seqn") %>%
+   rename(plain_water_gm = avg_320z,
+         tap_water_gm = avg_330z ,
+          bottled_water_gm = avgbwatz,
+         tap_water_source = avgtws) %>% 
+ 
+  ggplot(aes(x = tap_water_gm, y = n_pfoa)) + 
+  geom_point() +
+  geom_smooth(se = TRUE)
+
+
+  
+ 
+pfas_data_clean %>% 
+  left_join(water_matched, by = "seqn") %>%
+   rename(plain_water_gm = avg_320z,
+         tap_water_gm = avg_330z ,
+          bottled_water_gm = avgbwatz,
+         tap_water_source = avgtws) %>% 
+  lm(n_pfoa ~ tap_water_gm, .) %>% 
+  summary()
 ```
 
 
