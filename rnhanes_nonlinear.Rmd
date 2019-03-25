@@ -3,7 +3,7 @@ title: "rnhanes_nonlinear"
 author: "SL"
 date: "March 22, 2019"
 output: 
-  html_document:
+  github_document:
     toc: true
 ---
 
