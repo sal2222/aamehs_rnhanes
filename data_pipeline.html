@@ -133,12 +133,13 @@ $(document).ready(function () {
 <li><a href="#load-and-merge-data">Load and Merge Data</a><ul>
 <li><a href="#pfas-data-and-demographics">PFAS Data and Demographics</a></li>
 <li><a href="#body-mass-data">Body Mass Data</a></li>
-<li><a href="#household-income">Household Income</a></li>
+<li><a href="#household-income-and-household-education">Household Income and Household Education</a></li>
 <li><a href="#diabetes-status">Diabetes Status</a></li>
 <li><a href="#water-data">Water Data</a></li>
 <li><a href="#merge-data">Merge Data</a></li>
 </ul></li>
 <li><a href="#evaluate-missing">Evaluate Missing</a></li>
+<li><a href="#clean-up-variable-names">Clean up Variable Names</a></li>
 <li><a href="#write-out-working-dataset">Write Out Working Dataset</a></li>
 </ul>
 </div>
@@ -155,9 +156,9 @@ $(document).ready(function () {
   rename(pfdea = lbxpfde, pfhxs = lbxpfhs, me_pfosa_acoh = lbxmpah, 
          pfna = lbxpfna, pfua = lbxpfua,    pfdoa = lbxpfdo, n_pfoa = lbxnfoa,
          sb_pfoa = lbxbfoa, n_pfos = lbxnfos,   sm_pfos = lbxmfos)</code></pre>
-<pre><code>## Downloading PFAS_I.XPT to C:\Users\jenni\AppData\Local\Temp\RtmpIPApeN/PFAS_I.XPT</code></pre>
-<pre><code>## Downloading DEMO_I.XPT to C:\Users\jenni\AppData\Local\Temp\RtmpIPApeN/DEMO_I.XPT</code></pre>
-<pre><code>## Caching CSV to C:\Users\jenni\AppData\Local\Temp\RtmpIPApeN/DEMO_I.csv</code></pre>
+<pre><code>## Downloading PFAS_I.XPT to C:\Users\jenni\AppData\Local\Temp\RtmpETk976/PFAS_I.XPT</code></pre>
+<pre><code>## Downloading DEMO_I.XPT to C:\Users\jenni\AppData\Local\Temp\RtmpETk976/DEMO_I.XPT</code></pre>
+<pre><code>## Caching CSV to C:\Users\jenni\AppData\Local\Temp\RtmpETk976/DEMO_I.csv</code></pre>
 <pre class="r"><code>#https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/PFAS_I.htm
 #https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/DEMO_i.htm</code></pre>
 </div>
@@ -167,14 +168,14 @@ $(document).ready(function () {
   janitor::clean_names() %&gt;% 
   select(seqn, bmxbmi, bmxwt, bmiwt, bmxht,
          bmiht, bmxwaist, bmiwaist, bmxarmc, bmiarmc)</code></pre>
-<pre><code>## Downloading BMX_I.XPT to C:\Users\jenni\AppData\Local\Temp\RtmpIPApeN/BMX_I.XPT</code></pre>
+<pre><code>## Downloading BMX_I.XPT to C:\Users\jenni\AppData\Local\Temp\RtmpETk976/BMX_I.XPT</code></pre>
 <pre class="r"><code>#https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/BMX_I.htm</code></pre>
 </div>
-<div id="household-income" class="section level3">
-<h3>Household Income</h3>
-<pre class="r"><code>income_data_clean &lt;- nhanes_load_data(&quot;DEMO_I&quot;, &quot;2015-2016&quot;) %&gt;% 
+<div id="household-income-and-household-education" class="section level3">
+<h3>Household Income and Household Education</h3>
+<pre class="r"><code>hhincome.edu_data_clean &lt;- nhanes_load_data(&quot;DEMO_I&quot;, &quot;2015-2016&quot;) %&gt;% 
   janitor::clean_names() %&gt;% 
-  select(seqn, indhhin2, indfmin2, indfmpir)
+  select(seqn, indhhin2, indfmin2, indfmpir, dmdhredu)
 
 #https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/DEMO_i.htm</code></pre>
 </div>
@@ -183,7 +184,7 @@ $(document).ready(function () {
 <pre class="r"><code>diabetes_data_clean &lt;- nhanes_load_data(&quot;DIQ_I&quot;, &quot;2015-2016&quot;) %&gt;% 
   janitor::clean_names() %&gt;% 
   select(seqn, diq010)</code></pre>
-<pre><code>## Downloading DIQ_I.XPT to C:\Users\jenni\AppData\Local\Temp\RtmpIPApeN/DIQ_I.XPT</code></pre>
+<pre><code>## Downloading DIQ_I.XPT to C:\Users\jenni\AppData\Local\Temp\RtmpETk976/DIQ_I.XPT</code></pre>
 <pre class="r"><code>#https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/DIQ_I.htm</code></pre>
 </div>
 <div id="water-data" class="section level3">
@@ -196,10 +197,10 @@ $(document).ready(function () {
 aamehs_data = pfas_data_clean %&gt;% 
   left_join(bodymass_data_clean, by = &quot;seqn&quot;) %&gt;% 
   left_join(diabetes_data_clean, by = &quot;seqn&quot;) %&gt;% 
-  left_join(income_data_clean, by = &quot;seqn&quot;)
+  left_join(hhincome.edu_data_clean, by = &quot;seqn&quot;)
 
 # Clean environment
-rm(bodymass_data_clean, pfas_data_clean, income_data_clean, diabetes_data_clean)</code></pre>
+rm(bodymass_data_clean, pfas_data_clean, hhincome.edu_data_clean, diabetes_data_clean)</code></pre>
 </div>
 </div>
 <div id="evaluate-missing" class="section level2">
@@ -207,18 +208,19 @@ rm(bodymass_data_clean, pfas_data_clean, income_data_clean, diabetes_data_clean)
 <pre class="r"><code>aamehs_data %&gt;% skimr::skim()</code></pre>
 <pre><code>## Skim summary statistics
 ##  n obs: 2170 
-##  n variables: 44 
+##  n variables: 45 
 ## 
-## -- Variable type:character ------------------------------------------------------------------
+## -- Variable type:character ------------------------------------------------------------------------
 ##  variable missing complete    n min max empty n_unique
 ##     cycle       0     2170 2170   9   9     0        1
 ## 
-## -- Variable type:integer --------------------------------------------------------------------
+## -- Variable type:integer --------------------------------------------------------------------------
 ##  variable missing complete    n  mean    sd p0 p25 p50 p75 p100     hist
+##  dmdhredu      77     2093 2170  3.48  1.29  1   3   4   4    9 &lt;U+2586&gt;&lt;U+2585&gt;&lt;U+2587&gt;&lt;U+2586&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
 ##  indfmin2      62     2108 2170 11.14 15.18  1   5   8  14   99 &lt;U+2587&gt;&lt;U+2583&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
 ##  indhhin2      69     2101 2170 11.46 15.06  1   6   8  14   99 &lt;U+2587&gt;&lt;U+2583&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
 ## 
-## -- Variable type:numeric --------------------------------------------------------------------
+## -- Variable type:numeric --------------------------------------------------------------------------
 ##       variable missing complete    n       mean        sd       p0
 ##        bmiarmc    2078       92 2170     1          0         1   
 ##          bmiht    2146       24 2170     2.92       0.41      1   
@@ -310,18 +312,19 @@ aamehs_data &lt;- aamehs_data %&gt;%
 aamehs_data %&gt;% skimr::skim()</code></pre>
 <pre><code>## Skim summary statistics
 ##  n obs: 1993 
-##  n variables: 44 
+##  n variables: 45 
 ## 
-## -- Variable type:character ------------------------------------------------------------------
+## -- Variable type:character ------------------------------------------------------------------------
 ##  variable missing complete    n min max empty n_unique
 ##     cycle       0     1993 1993   9   9     0        1
 ## 
-## -- Variable type:integer --------------------------------------------------------------------
+## -- Variable type:integer --------------------------------------------------------------------------
 ##  variable missing complete    n  mean    sd p0 p25 p50 p75 p100     hist
+##  dmdhredu      70     1923 1993  3.47  1.28  1   3   4   4    9 &lt;U+2586&gt;&lt;U+2585&gt;&lt;U+2587&gt;&lt;U+2586&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
 ##  indfmin2      53     1940 1993 11.2  15.33  1   5   8  14   99 &lt;U+2587&gt;&lt;U+2583&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
 ##  indhhin2      57     1936 1993 11.51 15.19  1   6   8  14   99 &lt;U+2587&gt;&lt;U+2583&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
 ## 
-## -- Variable type:numeric --------------------------------------------------------------------
+## -- Variable type:numeric --------------------------------------------------------------------------
 ##       variable missing complete    n       mean        sd       p0
 ##        bmiarmc    1923       70 1993     1          0         1   
 ##          bmiht    1971       22 1993     2.91       0.43      1   
@@ -406,10 +409,272 @@ aamehs_data %&gt;% skimr::skim()</code></pre>
 ##      0.7      1.4      2.5      19.2  &lt;U+2587&gt;&lt;U+2582&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
 ##  16650.08 23933.85 40126.23 233755.84 &lt;U+2587&gt;&lt;U+2582&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
 ##  17179.74 24913.2  42067.87 242386.66 &lt;U+2587&gt;&lt;U+2582&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;</code></pre>
-<pre class="r"><code># n=16 missing BMI --? drop???
-# n=57 missing houshold income
-# n=231 missing military status
-# case complete for diabetes, race/ethnicity, gender, age, education</code></pre>
+<pre class="r"><code># Drop n=16 missing BMI
+aamehs_data &lt;- aamehs_data %&gt;% 
+  filter(bmxbmi != &quot;&quot;)
+
+aamehs_data %&gt;% skimr::skim()</code></pre>
+<pre><code>## Skim summary statistics
+##  n obs: 1977 
+##  n variables: 45 
+## 
+## -- Variable type:character ------------------------------------------------------------------------
+##  variable missing complete    n min max empty n_unique
+##     cycle       0     1977 1977   9   9     0        1
+## 
+## -- Variable type:integer --------------------------------------------------------------------------
+##  variable missing complete    n  mean    sd p0 p25 p50 p75 p100     hist
+##  dmdhredu      69     1908 1977  3.47  1.28  1   3   4   4    9 &lt;U+2586&gt;&lt;U+2585&gt;&lt;U+2587&gt;&lt;U+2586&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##  indfmin2      52     1925 1977 11.18 15.25  1   5   8  14   99 &lt;U+2587&gt;&lt;U+2583&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##  indhhin2      56     1921 1977 11.5  15.11  1   6   8  14   99 &lt;U+2587&gt;&lt;U+2583&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+## 
+## -- Variable type:numeric --------------------------------------------------------------------------
+##       variable missing complete    n       mean        sd       p0
+##        bmiarmc    1907       70 1977     1          0         1   
+##          bmiht    1957       20 1977     3          0         3   
+##       bmiwaist    1892       85 1977     1          0         1   
+##          bmiwt    1911       66 1977     3.06       0.24      3   
+##        bmxarmc      71     1906 1977    32.67       5.49     19.6 
+##         bmxbmi       0     1977 1977    28.85       7.15     14.5 
+##          bmxht       0     1977 1977   166.12      10.05    136.1 
+##       bmxwaist      86     1891 1977    97.43      17.81     59.7 
+##          bmxwt       0     1977 1977    79.98      22.39     35.7 
+##         diq010       0     1977 1977     1.92       0.42      1   
+##       dmdeduc2     349     1628 1977     3.47       1.28      1   
+##       dmdeduc3    1628      349 1977     9.31       3.89      5   
+##       dmqmiliz     229     1748 1977     1.91       0.28      1   
+##       indfmpir     198     1779 1977     2.39       1.6       0   
+##       lbdbfoal       0     1977 1977     0.98       0.14      0   
+##       lbdmfosl       0     1977 1977     0.011      0.1       0   
+##       lbdmpahl       0     1977 1977     0.61       0.49      0   
+##       lbdnfoal       0     1977 1977     0.0076     0.087     0   
+##       lbdnfosl       0     1977 1977     0.0051     0.071     0   
+##       lbdpfdel       0     1977 1977     0.34       0.47      0   
+##       lbdpfdol       0     1977 1977     0.98       0.15      0   
+##       lbdpfhsl       0     1977 1977     0.015      0.12      0   
+##       lbdpfnal       0     1977 1977     0.012      0.11      0   
+##       lbdpfual       0     1977 1977     0.62       0.48      0   
+##  me_pfosa_acoh       0     1977 1977     0.17       0.27      0.07
+##         n_pfoa       0     1977 1977     1.81       1.63      0.07
+##         n_pfos       0     1977 1977     5.11       6.85      0.07
+##          pfdea       0     1977 1977     0.26       0.45      0.07
+##          pfdoa       0     1977 1977     0.072      0.014     0.07
+##          pfhxs       0     1977 1977     1.61       1.74      0.07
+##           pfna       0     1977 1977     0.78       0.7       0.07
+##           pfua       0     1977 1977     0.16       0.26      0.07
+##       riagendr       0     1977 1977     1.51       0.5       1   
+##       ridageyr       0     1977 1977    43.32      20.52     12   
+##       ridreth3       0     1977 1977     3.23       1.65      1   
+##        sb_pfoa       0     1977 1977     0.072      0.02      0.07
+##       sddsrvyr       0     1977 1977     9          0         9   
+##           seqn       0     1977 1977 88700.56    2872.61  83736   
+##        sm_pfos       0     1977 1977     1.94       1.88      0.07
+##       wtint2yr       0     1977 1977 38463.19   37397.54   5330.96
+##       wtmec2yr       0     1977 1977 39962.04   38350.73   5470.04
+##       p25      p50      p75      p100     hist
+##      1        1        1         1    &lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      3        3        3         3    &lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      1        1        1         1    &lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      3        3        3         4    &lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##     28.8     32.4     36        55.8  &lt;U+2581&gt;&lt;U+2585&gt;&lt;U+2587&gt;&lt;U+2587&gt;&lt;U+2583&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##     23.7     27.8     32.8      64.5  &lt;U+2582&gt;&lt;U+2587&gt;&lt;U+2587&gt;&lt;U+2583&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##    158.7    165.9    173.2     202.7  &lt;U+2581&gt;&lt;U+2582&gt;&lt;U+2586&gt;&lt;U+2587&gt;&lt;U+2587&gt;&lt;U+2583&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##     84.4     96.5    108.2     165    &lt;U+2582&gt;&lt;U+2586&gt;&lt;U+2587&gt;&lt;U+2587&gt;&lt;U+2583&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##     63.8     76.9     92.1     181.5  &lt;U+2582&gt;&lt;U+2587&gt;&lt;U+2587&gt;&lt;U+2585&gt;&lt;U+2582&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      2        2        2         9    &lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      3        4        4         9    &lt;U+2586&gt;&lt;U+2586&gt;&lt;U+2587&gt;&lt;U+2586&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      7        9       11        66    &lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      2        2        2         2    &lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2587&gt;
+##      1.05     1.96     3.75      5    &lt;U+2585&gt;&lt;U+2587&gt;&lt;U+2586&gt;&lt;U+2585&gt;&lt;U+2583&gt;&lt;U+2582&gt;&lt;U+2582&gt;&lt;U+2587&gt;
+##      1        1        1         1    &lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2587&gt;
+##      0        0        0         1    &lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      0        1        1         1    &lt;U+2585&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2587&gt;
+##      0        0        0         1    &lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      0        0        0         1    &lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      0        0        1         1    &lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2585&gt;
+##      1        1        1         1    &lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2587&gt;
+##      0        0        0         1    &lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      0        0        0         1    &lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      0        1        1         1    &lt;U+2585&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2587&gt;
+##      0.07     0.07     0.2       4.2  &lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      0.9      1.4      2.2      20.4  &lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      1.8      3.2      5.7     109.9  &lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      0.07     0.1      0.3       6.5  &lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      0.07     0.07     0.07      0.3  &lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      0.6      1.2      1.9      23.3  &lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      0.4      0.6      1        11    &lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      0.07     0.07     0.2       4.2  &lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      1        2        2         2    &lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2587&gt;
+##     25       43       61        80    &lt;U+2587&gt;&lt;U+2585&gt;&lt;U+2585&gt;&lt;U+2585&gt;&lt;U+2585&gt;&lt;U+2586&gt;&lt;U+2585&gt;&lt;U+2585&gt;
+##      2        3        4         7    &lt;U+2585&gt;&lt;U+2583&gt;&lt;U+2587&gt;&lt;U+2586&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2583&gt;&lt;U+2581&gt;
+##      0.07     0.07     0.07      0.5  &lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      9        9        9         9    &lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##  86245    88722    91216     93700    &lt;U+2587&gt;&lt;U+2587&gt;&lt;U+2587&gt;&lt;U+2587&gt;&lt;U+2587&gt;&lt;U+2587&gt;&lt;U+2587&gt;&lt;U+2587&gt;
+##      0.7      1.4      2.5      19.2  &lt;U+2587&gt;&lt;U+2582&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##  16711.94 23980.42 40625.91 233755.84 &lt;U+2587&gt;&lt;U+2582&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##  17337.24 24931.41 42258.14 242386.66 &lt;U+2587&gt;&lt;U+2582&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;</code></pre>
+<pre class="r"><code>table (aamehs_data$indhhin2, useNA = &quot;ifany&quot;) # household income</code></pre>
+<pre><code>## 
+##    1    2    3    4    5    6    7    8    9   10   12   13   14   15   77 
+##   47   66  104  120  119  213  198  162  117  106   61   35  183  322   39 
+##   99 &lt;NA&gt; 
+##   29   56</code></pre>
+<pre class="r"><code>table (aamehs_data$dmdhredu, useNA = &quot;ifany&quot;) # household education</code></pre>
+<pre><code>## 
+##    1    2    3    4    5    9 &lt;NA&gt; 
+##  205  230  400  615  456    2   69</code></pre>
+<pre class="r"><code>table (aamehs_data$ridreth3, useNA = &quot;ifany&quot;) # race/ethnicity - use this!</code></pre>
+<pre><code>## 
+##   1   2   3   4   6   7 
+## 363 256 616 437 220  85</code></pre>
+<pre class="r"><code>table (aamehs_data$riagendr, useNA = &quot;ifany&quot;) # gender</code></pre>
+<pre><code>## 
+##    1    2 
+##  959 1018</code></pre>
+<pre class="r"><code>table (aamehs_data$diq010, useNA = &quot;ifany&quot;)   # doc told diabetes</code></pre>
+<pre><code>## 
+##    1    2    3    9 
+##  222 1713   40    2</code></pre>
+<pre class="r"><code>table (aamehs_data$dmqmiliz, useNA = &quot;ifany&quot;) # military</code></pre>
+<pre><code>## 
+##    1    2 &lt;NA&gt; 
+##  155 1593  229</code></pre>
+<pre class="r"><code># Recode houshold education to move &quot;don't know&quot; to missing (n=2)
+aamehs_data$dmdhredu[aamehs_data$dmdhredu == 9] &lt;- NA
+
+# Recode diabetes to move &quot;don't know&quot; to missing (n=2)
+aamehs_data$diq010[aamehs_data$diq010 == 9] &lt;- NA
+
+# n=124 missing houshold income --&gt; wont use
+# n=71 missing houshold education
+# n=2 missing diabetes
+# n=229 missing military status
+# case complete for race/ethnicity, gender, age</code></pre>
+</div>
+<div id="clean-up-variable-names" class="section level2">
+<h2>Clean up Variable Names</h2>
+<pre class="r"><code>aamehs_data &lt;- aamehs_data %&gt;% 
+  dplyr::rename(hh_education = dmdhredu,
+         race_ethnicity = ridreth3,
+         gender = riagendr,
+         age = ridageyr,
+         diabetes = diq010,
+         military = dmqmiliz,
+         bmi = bmxbmi,
+         weight_kg = bmxwt,
+         height_cm = bmxht,
+         arm_circ_cm = bmxarmc,
+         waist_circ_cm = bmxwaist,
+         c_bmiarmc = bmiarmc,
+         c_bmiht = bmiht,
+         c_bmiwaist = bmiwaist,
+         c_bmiwt = bmiwt,
+         c_lbdpfdel = lbdpfdel,
+         c_lbdpfhsl = lbdpfhsl, 
+         c_lbdmpahl = lbdmpahl, 
+         c_lbdpfnal = lbdpfnal, 
+         c_lbdpfual = lbdpfual, 
+         c_lbdpfdol = lbdpfdol,
+         c_lbdbfoal = lbdbfoal,
+         c_lbdnfoal = lbdnfoal, 
+         c_lbdnfosl = lbdnfosl, 
+         c_lbdmfosl = lbdmfosl) %&gt;% 
+  dplyr::select(-dmdeduc2, -indhhin2, -indfmin2, -cycle, - dmdeduc2, -dmdeduc3, -indfmpir,
+                -sddsrvyr) %&gt;% 
+  dplyr::mutate(hh_education = as.factor(hh_education),
+         diabetes = as.factor(diabetes),
+         gender = as.factor(gender),
+         race_ethnicity = as.factor(race_ethnicity),
+         military = as.factor(military))
+
+skimr::skim(aamehs_data)</code></pre>
+<pre><code>## Skim summary statistics
+##  n obs: 1977 
+##  n variables: 38 
+## 
+## -- Variable type:factor ---------------------------------------------------------------------------
+##        variable missing complete    n n_unique
+##        diabetes       2     1975 1977        3
+##          gender       0     1977 1977        2
+##    hh_education      71     1906 1977        5
+##        military     229     1748 1977        2
+##  race_ethnicity       0     1977 1977        6
+##                      top_counts ordered
+##   2: 1713, 1: 222, 3: 40, NA: 2   FALSE
+##          2: 1018, 1: 959, NA: 0   FALSE
+##  4: 615, 5: 456, 3: 400, 2: 230   FALSE
+##        2: 1593, NA: 229, 1: 155   FALSE
+##  3: 616, 4: 437, 1: 363, 2: 256   FALSE
+## 
+## -- Variable type:numeric --------------------------------------------------------------------------
+##       variable missing complete    n       mean        sd       p0
+##            age       0     1977 1977    43.32      20.52     12   
+##    arm_circ_cm      71     1906 1977    32.67       5.49     19.6 
+##            bmi       0     1977 1977    28.85       7.15     14.5 
+##      c_bmiarmc    1907       70 1977     1          0         1   
+##        c_bmiht    1957       20 1977     3          0         3   
+##     c_bmiwaist    1892       85 1977     1          0         1   
+##        c_bmiwt    1911       66 1977     3.06       0.24      3   
+##     c_lbdbfoal       0     1977 1977     0.98       0.14      0   
+##     c_lbdmfosl       0     1977 1977     0.011      0.1       0   
+##     c_lbdmpahl       0     1977 1977     0.61       0.49      0   
+##     c_lbdnfoal       0     1977 1977     0.0076     0.087     0   
+##     c_lbdnfosl       0     1977 1977     0.0051     0.071     0   
+##     c_lbdpfdel       0     1977 1977     0.34       0.47      0   
+##     c_lbdpfdol       0     1977 1977     0.98       0.15      0   
+##     c_lbdpfhsl       0     1977 1977     0.015      0.12      0   
+##     c_lbdpfnal       0     1977 1977     0.012      0.11      0   
+##     c_lbdpfual       0     1977 1977     0.62       0.48      0   
+##      height_cm       0     1977 1977   166.12      10.05    136.1 
+##  me_pfosa_acoh       0     1977 1977     0.17       0.27      0.07
+##         n_pfoa       0     1977 1977     1.81       1.63      0.07
+##         n_pfos       0     1977 1977     5.11       6.85      0.07
+##          pfdea       0     1977 1977     0.26       0.45      0.07
+##          pfdoa       0     1977 1977     0.072      0.014     0.07
+##          pfhxs       0     1977 1977     1.61       1.74      0.07
+##           pfna       0     1977 1977     0.78       0.7       0.07
+##           pfua       0     1977 1977     0.16       0.26      0.07
+##        sb_pfoa       0     1977 1977     0.072      0.02      0.07
+##           seqn       0     1977 1977 88700.56    2872.61  83736   
+##        sm_pfos       0     1977 1977     1.94       1.88      0.07
+##  waist_circ_cm      86     1891 1977    97.43      17.81     59.7 
+##      weight_kg       0     1977 1977    79.98      22.39     35.7 
+##       wtint2yr       0     1977 1977 38463.19   37397.54   5330.96
+##       wtmec2yr       0     1977 1977 39962.04   38350.73   5470.04
+##       p25      p50      p75      p100     hist
+##     25       43       61        80    &lt;U+2587&gt;&lt;U+2585&gt;&lt;U+2585&gt;&lt;U+2585&gt;&lt;U+2585&gt;&lt;U+2586&gt;&lt;U+2585&gt;&lt;U+2585&gt;
+##     28.8     32.4     36        55.8  &lt;U+2581&gt;&lt;U+2585&gt;&lt;U+2587&gt;&lt;U+2587&gt;&lt;U+2583&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##     23.7     27.8     32.8      64.5  &lt;U+2582&gt;&lt;U+2587&gt;&lt;U+2587&gt;&lt;U+2583&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      1        1        1         1    &lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      3        3        3         3    &lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      1        1        1         1    &lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      3        3        3         4    &lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      1        1        1         1    &lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2587&gt;
+##      0        0        0         1    &lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      0        1        1         1    &lt;U+2585&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2587&gt;
+##      0        0        0         1    &lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      0        0        0         1    &lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      0        0        1         1    &lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2585&gt;
+##      1        1        1         1    &lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2587&gt;
+##      0        0        0         1    &lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      0        0        0         1    &lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      0        1        1         1    &lt;U+2585&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2587&gt;
+##    158.7    165.9    173.2     202.7  &lt;U+2581&gt;&lt;U+2582&gt;&lt;U+2586&gt;&lt;U+2587&gt;&lt;U+2587&gt;&lt;U+2583&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      0.07     0.07     0.2       4.2  &lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      0.9      1.4      2.2      20.4  &lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      1.8      3.2      5.7     109.9  &lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      0.07     0.1      0.3       6.5  &lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      0.07     0.07     0.07      0.3  &lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      0.6      1.2      1.9      23.3  &lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      0.4      0.6      1        11    &lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      0.07     0.07     0.2       4.2  &lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##      0.07     0.07     0.07      0.5  &lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##  86245    88722    91216     93700    &lt;U+2587&gt;&lt;U+2587&gt;&lt;U+2587&gt;&lt;U+2587&gt;&lt;U+2587&gt;&lt;U+2587&gt;&lt;U+2587&gt;&lt;U+2587&gt;
+##      0.7      1.4      2.5      19.2  &lt;U+2587&gt;&lt;U+2582&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##     84.4     96.5    108.2     165    &lt;U+2582&gt;&lt;U+2586&gt;&lt;U+2587&gt;&lt;U+2587&gt;&lt;U+2583&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##     63.8     76.9     92.1     181.5  &lt;U+2582&gt;&lt;U+2587&gt;&lt;U+2587&gt;&lt;U+2585&gt;&lt;U+2582&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##  16711.94 23980.42 40625.91 233755.84 &lt;U+2587&gt;&lt;U+2582&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+##  17337.24 24931.41 42258.14 242386.66 &lt;U+2587&gt;&lt;U+2582&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;</code></pre>
 </div>
 <div id="write-out-working-dataset" class="section level2">
 <h2>Write Out Working Dataset</h2>

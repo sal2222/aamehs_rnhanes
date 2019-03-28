@@ -54,13 +54,13 @@ bodymass_data_clean <- nhanes_load_data("BMX_I", "2015-2016", demographics = TRU
 ```
 
 
-### Household Income
+### Household Income and Household Education
 
-```{r load income data}
+```{r load income and houshold ed data}
 
-income_data_clean <- nhanes_load_data("DEMO_I", "2015-2016") %>% 
+hhincome.edu_data_clean <- nhanes_load_data("DEMO_I", "2015-2016") %>% 
   janitor::clean_names() %>% 
-  select(seqn, indhhin2, indfmin2, indfmpir)
+  select(seqn, indhhin2, indfmin2, indfmpir, dmdhredu)
 
 #https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/DEMO_i.htm
 
@@ -117,10 +117,10 @@ Decided not to use water variables because there was completely no association w
 aamehs_data = pfas_data_clean %>% 
   left_join(bodymass_data_clean, by = "seqn") %>% 
   left_join(diabetes_data_clean, by = "seqn") %>% 
-  left_join(income_data_clean, by = "seqn")
+  left_join(hhincome.edu_data_clean, by = "seqn")
 
 # Clean environment
-rm(bodymass_data_clean, pfas_data_clean, income_data_clean, diabetes_data_clean)
+rm(bodymass_data_clean, pfas_data_clean, hhincome.edu_data_clean, diabetes_data_clean)
 
 ```
 
@@ -137,10 +137,71 @@ aamehs_data <- aamehs_data %>%
 
 aamehs_data %>% skimr::skim()
 
-# n=16 missing BMI --? drop???
-# n=57 missing houshold income
-# n=231 missing military status
-# case complete for diabetes, race/ethnicity, gender, age, education
+# Drop n=16 missing BMI
+aamehs_data <- aamehs_data %>% 
+  filter(bmxbmi != "")
+
+aamehs_data %>% skimr::skim()
+table (aamehs_data$indhhin2, useNA = "ifany") # household income
+table (aamehs_data$dmdhredu, useNA = "ifany") # household education
+table (aamehs_data$ridreth3, useNA = "ifany") # race/ethnicity - use this!
+table (aamehs_data$riagendr, useNA = "ifany") # gender
+table (aamehs_data$diq010, useNA = "ifany")   # doc told diabetes
+table (aamehs_data$dmqmiliz, useNA = "ifany") # military
+
+# Recode houshold education to move "don't know" to missing (n=2)
+aamehs_data$dmdhredu[aamehs_data$dmdhredu == 9] <- NA
+
+# Recode diabetes to move "don't know" to missing (n=2)
+aamehs_data$diq010[aamehs_data$diq010 == 9] <- NA
+
+# n=124 missing houshold income --> wont use
+# n=71 missing houshold education
+# n=2 missing diabetes
+# n=229 missing military status
+# case complete for race/ethnicity, gender, age
+
+```
+
+## Clean up Variable Names
+
+```{r data cleaning}
+
+aamehs_data <- aamehs_data %>% 
+  dplyr::rename(hh_education = dmdhredu,
+         race_ethnicity = ridreth3,
+         gender = riagendr,
+         age = ridageyr,
+         diabetes = diq010,
+         military = dmqmiliz,
+         bmi = bmxbmi,
+         weight_kg = bmxwt,
+         height_cm = bmxht,
+         arm_circ_cm = bmxarmc,
+         waist_circ_cm = bmxwaist,
+         c_bmiarmc = bmiarmc,
+         c_bmiht = bmiht,
+         c_bmiwaist = bmiwaist,
+         c_bmiwt = bmiwt,
+         c_lbdpfdel = lbdpfdel,
+         c_lbdpfhsl = lbdpfhsl, 
+         c_lbdmpahl = lbdmpahl, 
+         c_lbdpfnal = lbdpfnal, 
+         c_lbdpfual = lbdpfual, 
+         c_lbdpfdol = lbdpfdol,
+         c_lbdbfoal = lbdbfoal,
+         c_lbdnfoal = lbdnfoal, 
+         c_lbdnfosl = lbdnfosl, 
+         c_lbdmfosl = lbdmfosl) %>% 
+  dplyr::select(-dmdeduc2, -indhhin2, -indfmin2, -cycle, - dmdeduc2, -dmdeduc3, -indfmpir,
+                -sddsrvyr) %>% 
+  dplyr::mutate(hh_education = as.factor(hh_education),
+         diabetes = as.factor(diabetes),
+         gender = as.factor(gender),
+         race_ethnicity = as.factor(race_ethnicity),
+         military = as.factor(military))
+
+skimr::skim(aamehs_data)
 
 ```
 
