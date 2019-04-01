@@ -18,10 +18,11 @@ library(splines)
 Load dataset from pipeline output
 ```{r load}
 pfas <- read.csv("aamehs_data.csv") %>% 
-   select(seqn, riagendr, ridageyr, ridreth3, indfmpir, pfdea, pfhxs, me_pfosa_acoh, pfna, pfua, pfdoa, n_pfoa, sb_pfoa, n_pfos, sm_pfos, bmxbmi) %>% 
-  mutate(riagendr = factor(riagendr),
-         ridreth3 = factor(ridreth3)) %>% 
-  drop_na(bmxbmi)
+   select(seqn, gender, age, race_ethnicity, hh_education, diabetes, pfdea, pfhxs, me_pfosa_acoh, pfna, pfua, pfdoa, n_pfoa, sb_pfoa, n_pfos, sm_pfos, bmi) %>% 
+  mutate(riagendr = factor(gender),
+         ridreth3 = factor(race_ethnicity),
+         hh_education = factor(hh_education)) %>% 
+  drop_na(bmi)
 
 glimpse(pfas)
 
@@ -33,22 +34,16 @@ pfas %>%
 ```
 
 Missing values: 
-indfmpir = 201  -- too high!, HH education level instead?
+indfmpir = 201 
+hh_education = 71
 bmxbmi = 16
 
-RIAGENDR - Gender
-RIDAGEYR - Age in years at screening
-RIDRETH3 - Race/Hispanic origin w/ NH Asian
-DMQMILIZ - Served active duty in US Armed Forces
 
 ## Linear
-Need an SES term --- finding negative association???
--- stratify by gender
-
 
 ### Linear, no additional variables
 ```{r}
-pfoa_linear_single <- lm(bmxbmi ~ n_pfoa, data = pfas)
+pfoa_linear_single <- lm(bmi ~ n_pfoa, data = pfas)
 
 summary(pfoa_linear_single)
 
@@ -58,7 +53,7 @@ pfoa_linear_single %>%
   mutate(pred = n_pfoa) %>% 
   select(pred) %>% 
   bind_cols(pfas) %>% 
-  mutate(pred_bmi = pred + mean(bmxbmi)) %>% 
+  mutate(pred_bmi = pred + mean(bmi)) %>% 
   ggplot(., aes(x = n_pfoa)) + 
     geom_line(aes(y = pred_bmi)) + 
     xlab("n_pfoa") + 
@@ -66,7 +61,7 @@ pfoa_linear_single %>%
 
 
 
-pfos_linear_single <- lm(bmxbmi ~ n_pfos, data = pfas)
+pfos_linear_single <- lm(bmi ~ n_pfos, data = pfas)
 
 summary(pfos_linear_single)
 
@@ -79,7 +74,7 @@ summary(pfos_linear_single)
 
 ### Linear, simple model
 ```{r pfoa_linear_model}
-pfoa_linear <- lm(bmxbmi ~ n_pfoa + riagendr + ridageyr + ridreth3, 
+pfoa_linear <- lm(bmi ~ n_pfoa + gender + age + race_ethnicity + hh_education + diabetes, 
               data = pfas)
 
 summary(pfoa_linear)
@@ -91,7 +86,7 @@ pfoa_linear %>%
   mutate(pred = fit.n_pfoa) %>% 
   select(pred) %>% 
   bind_cols(pfas) %>% 
-  mutate(pred_bmi = pred + mean(bmxbmi)) %>% 
+  mutate(pred_bmi = pred + mean(bmi)) %>% 
   ggplot(., aes(x = n_pfoa)) + 
     geom_line(aes(y = pred_bmi)) + 
     xlab("n_pfoa") + 
@@ -102,7 +97,7 @@ pfoa_linear %>%
 
 
 ```{r pfos_linear}
-pfos_linear <- lm(bmxbmi ~ n_pfos + riagendr + ridageyr + ridreth3, 
+pfos_linear <- lm(bmi ~ n_pfos + gender + age + race_ethnicity + hh_education + diabetes, 
               data = pfas)
 
 summary(pfos_linear)
@@ -114,7 +109,7 @@ summary(pfos_linear)
 ### glm natural spline
 ```{r pfoa_natural_spline}
 
-ns_pfoa <- lm(bmxbmi ~ ns(n_pfoa, df = 3) + riagendr + ridageyr + ridreth3, data = pfas)
+ns_pfoa <- lm(bmi ~ ns(n_pfoa, df = 3) + gender + age + race_ethnicity + hh_education + diabetes, data = pfas)
 
 summary(ns_pfoa)
 AIC(ns_pfoa)
@@ -129,9 +124,9 @@ ns_pfoa %>%
          uci = pred + 1.96*se) %>%
   select(pred, se, lci, uci) %>% 
   bind_cols(pfas) %>% 
-  mutate(pred_bmi = pred + mean(bmxbmi),
-         lci_bmi = lci + mean(bmxbmi),
-         uci_bmi = uci + mean(bmxbmi)) %>% 
+  mutate(pred_bmi = pred + mean(bmi),
+         lci_bmi = lci + mean(bmi),
+         uci_bmi = uci + mean(bmi)) %>% 
   ggplot(., aes(n_pfoa)) + 
       geom_line(aes(y = pred_bmi)) + 
       geom_line(aes(y = lci_bmi), color = "darkgrey") + 
@@ -143,7 +138,7 @@ ns_pfoa %>%
 
 
 
-ns_pfos <- lm(bmxbmi ~ ns(n_pfos, df = 3) + riagendr + ridageyr + ridreth3, data = pfas)
+ns_pfos <- lm(bmi ~ ns(n_pfos, df = 3) + gender + age + race_ethnicity + hh_education + diabetes, data = pfas)
 
 summary(ns_pfos)
 AIC(ns_pfos)
@@ -158,9 +153,9 @@ ns_pfos %>%
          uci = pred + 1.96*se) %>%
   select(pred, se, lci, uci) %>% 
   bind_cols(pfas) %>% 
-  mutate(pred_bmi = pred + mean(bmxbmi),
-         lci_bmi = lci + mean(bmxbmi),
-         uci_bmi = uci + mean(bmxbmi)) %>% 
+  mutate(pred_bmi = pred + mean(bmi),
+         lci_bmi = lci + mean(bmi),
+         uci_bmi = uci + mean(bmi)) %>% 
   ggplot(., aes(n_pfos)) + 
       geom_line(aes(y = pred_bmi)) + 
       geom_line(aes(y = lci_bmi), color = "darkgrey") + 
@@ -176,7 +171,7 @@ ns_pfos %>%
 ### gam natural spline
 ```{r}
 
-pfos_gam_ns <- gam(bmxbmi ~ ns(n_pfos, df = 3) + riagendr + ridageyr + ridreth3, data = pfas)
+pfos_gam_ns <- gam(bmi ~ ns(n_pfos, df = 3) + gender + age + race_ethnicity + hh_education + diabetes, data = pfas)
 
 termplot(pfos_gam_ns, se = TRUE)
 
@@ -186,7 +181,7 @@ termplot(pfos_gam_ns, se = TRUE)
 ## Penalized spline
 
 ```{r}
-pfoa_ps <- gam(bmxbmi ~ s(n_pfoa) + riagendr + ridageyr + ridreth3, data = pfas)
+pfoa_ps <- gam(bmi ~ s(n_pfoa) + gender + age + race_ethnicity + hh_education + diabetes, data = pfas)
 summary(pfoa_ps)
 pfoa_ps$sp   # extract Penalty 
 plot(pfoa_ps)
@@ -201,9 +196,9 @@ pfoa_ps %>%
          uci = pred + 1.96*se) %>%
   select(pred, se, lci, uci) %>% 
   bind_cols(pfas) %>% 
-  mutate(pred_bmi = pred + mean(bmxbmi),
-         lci_bmi = lci + mean(bmxbmi),
-         uci_bmi = uci + mean(bmxbmi)) %>% 
+  mutate(pred_bmi = pred + mean(bmi),
+         lci_bmi = lci + mean(bmi),
+         uci_bmi = uci + mean(bmi)) %>% 
   ggplot(., aes(n_pfoa)) + 
       geom_line(aes(y = pred_bmi)) + 
       geom_line(aes(y = lci_bmi), color = "darkgrey") + 
@@ -217,7 +212,7 @@ pfoa_ps %>%
 
 
 
-pfos_ps <- gam(bmxbmi ~ s(n_pfos) + riagendr + ridageyr + ridreth3, data = pfas)
+pfos_ps <- gam(bmi ~ s(n_pfos) + gender + age + race_ethnicity + hh_education + diabetes, data = pfas)
 summary(pfos_ps)
 pfos_ps$sp   # extract Penalty 
 plot(pfos_ps)
@@ -231,9 +226,9 @@ pfos_ps %>%
          uci = pred + 1.96*se) %>%
   select(pred, se, lci, uci) %>% 
   bind_cols(pfas) %>% 
-  mutate(pred_bmi = pred + mean(bmxbmi),
-         lci_bmi = lci + mean(bmxbmi),
-         uci_bmi = uci + mean(bmxbmi)) %>% 
+  mutate(pred_bmi = pred + mean(bmi),
+         lci_bmi = lci + mean(bmi),
+         uci_bmi = uci + mean(bmi)) %>% 
   ggplot(., aes(n_pfos)) + 
       geom_line(aes(y = pred_bmi)) + 
       geom_line(aes(y = lci_bmi), color = "darkgrey") + 
