@@ -1,0 +1,93 @@
+---
+title: "PCA"
+author: "J Shearston"
+date: "March 31, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+
+```
+
+## Load and Format data
+Convert dataset to wide for PCA
+
+```{r load and format data, message=FALSE}
+
+aamehs_data <- read_csv("aamehs_data.csv")
+
+pca_data <- aamehs_data %>% 
+  select(pfdea, pfhxs, me_pfosa_acoh, pfna, pfua, pfdoa, n_pfoa, sb_pfoa, n_pfos, sm_pfos)
+
+summary(pca_data)
+
+```
+
+
+## Run PCA
+
+```{r run pca, message=FALSE}
+
+library(psych)
+pca <- prcomp(pca_data, scale. = TRUE) 
+
+ls(pca)
+summary(pca)
+
+eigenvalues.v <- pca$sdev^2
+perc_variance.v <- eigenvalues.v/sum(eigenvalues.v)
+perc_variance.v <- round(100 * perc_variance.v, 1)
+cumulative_perc_var.v <- cumsum(perc_variance.v)
+eigenvalues.df <- data.frame(1:length(eigenvalues.v), eigenvalues.v, perc_variance.v, cumulative_perc_var.v)
+colnames(eigenvalues.df) <- c("Principal Component", "Eigenvalues", 
+                              "Proportion Var Explained", "Cumulative Proportion")
+
+```
+
+
+## Visualize PCA Output
+
+```{r visualize pca, message=FALSE, warning=FALSE}
+
+# Scree Plot
+library(factoextra)
+fviz_eig(pca, main = "Percent Variance Explained \n by Principal Component",
+         xlab = "Principal component",
+         ylim = c(0,70)) 
+
+# Visualize Loadings
+loadings.df <- as.data.frame.matrix(pca$rotation) 
+loadings.df$Constituent <- row.names(loadings.df)
+loadings.long <- loadings.df %>% 
+  gather(key = "PC", value = "Loading", -Constituent) 
+
+ggplot(loadings.long, aes(x = Constituent, y = Loading)) + 
+  geom_col() +                             # creates a column for each loading
+  geom_hline(yintercept = 0, size = 0.2) + # creates a line at 0
+  facet_wrap(~ PC) +                       # creates a distinct box for each PC 
+  theme_bw() +                             # sets theme options
+  theme(strip.background = element_rect(fill = "white")) +
+  labs(x = expression("PFOS Constituents"),
+       y = "Loadings") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
+
+
+## Select PCAs to include in models
+
+Will use scree plot (above) and select first three components
+
+```{r select and save pcs, message=FALSE}
+
+pca_scores <- as.data.frame(pca$x) %>% 
+  select(PC1, PC2, PC3) %>% 
+  mutate(seqn = aamehs_data$seqn)
+  
+write_csv(pca_scores, path = "./pca_scores.csv")
+
+```
+
