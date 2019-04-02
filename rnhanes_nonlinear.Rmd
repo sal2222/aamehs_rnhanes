@@ -12,17 +12,19 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(mgcv)
 library(splines)
-
+library(ggcorrplot)
+library(corrplot)
 ```
 
 Load dataset from pipeline output
 ```{r load}
 pfas <- read.csv("aamehs_data.csv") %>% 
    select(seqn, gender, age, race_ethnicity, hh_education, diabetes, pfdea, pfhxs, me_pfosa_acoh, pfna, pfua, pfdoa, n_pfoa, sb_pfoa, n_pfos, sm_pfos, bmi) %>% 
-  mutate(riagendr = factor(gender),
-         ridreth3 = factor(race_ethnicity),
-         hh_education = factor(hh_education)) %>% 
-  drop_na(bmi)
+  mutate(gender = factor(gender),
+         race_ethnicity = factor(race_ethnicity),
+         hh_education = factor(hh_education),
+         diabetes = factor(diabetes)) %>% 
+  drop_na()
 
 glimpse(pfas)
 
@@ -37,6 +39,61 @@ Missing values:
 indfmpir = 201 
 hh_education = 71
 bmxbmi = 16
+
+
+## Tables
+
+```{r, warning = FALSE}
+pfas %>% 
+  select(-seqn, gender, age, race_ethnicity, hh_education, diabetes, bmi, everything()) %>% 
+  summarise_at(vars(age, bmi, pfdea:sm_pfos), list(~mean(.), ~sd(.)), na.rm = TRUE)
+
+
+
+pfas %>% 
+  select(gender, age, race_ethnicity, hh_education, diabetes, bmi, everything(), -seqn) %>% 
+  summary(.) 
+
+
+pfas %>% 
+  select(gender, age, race_ethnicity, hh_education, diabetes, bmi, everything(), -seqn) %>% 
+  group_by(gender) %>%   
+  summarise_all(mean) %>% 
+  select(-(race_ethnicity:diabetes)) %>% 
+  knitr::kable()
+
+pfas %>% 
+  select(gender, age, race_ethnicity, hh_education, diabetes, bmi, everything(), -seqn) %>% 
+  group_by(race_ethnicity) %>%   
+  summarise_all(mean) %>% 
+  select(-gender, -hh_education, -diabetes) %>% 
+  knitr::kable()
+
+
+```
+
+## Correlations
+
+
+```{r}
+cor_pfas <-
+  pfas %>% 
+    select(bmi, everything(), -(seqn:diabetes)) %>% 
+    scale() %>% 
+    cor()
+  
+cor_pfas %>%
+  corrplot::corrplot.mixed(., lower = "number", upper = "ellipse",
+                           tl.col = "black", tl.srt = 90)
+
+cor_pfas %>%
+  corrplot::corrplot(., type = "upper", order = "hclust",
+         col = c("black", "white"), bg = "lightblue")
+```
+
+
+
+
 
 
 ## Linear
@@ -70,14 +127,17 @@ summary(pfos_linear_single)
 
 
 
-
-
 ### Linear, simple model
 ```{r pfoa_linear_model}
 pfoa_linear <- lm(bmi ~ n_pfoa + gender + age + race_ethnicity + hh_education + diabetes, 
               data = pfas)
 
 summary(pfoa_linear)
+
+pfoa_linear %>% 
+  broom::tidy() %>% 
+  select(-statistic) %>% 
+  knitr::kable(digits = 3)
 
 
 pfoa_linear %>% 
@@ -113,6 +173,13 @@ ns_pfoa <- lm(bmi ~ ns(n_pfoa, df = 3) + gender + age + race_ethnicity + hh_educ
 
 summary(ns_pfoa)
 AIC(ns_pfoa)
+
+ns_pfoa %>% 
+  broom::tidy() %>% 
+  select(-statistic) %>% 
+  knitr::kable(digits = 3)
+
+
 plot(ns_pfoa)
 
 ns_pfoa %>% 
@@ -181,13 +248,20 @@ termplot(pfos_gam_ns, se = TRUE)
 ## Penalized spline
 
 ```{r}
-pfoa_ps <- gam(bmi ~ s(n_pfoa) + gender + age + race_ethnicity + hh_education + diabetes, data = pfas)
-summary(pfoa_ps)
-pfoa_ps$sp   # extract Penalty 
-plot(pfoa_ps)
+ps_pfoa <- gam(bmi ~ s(n_pfoa) + gender + age + race_ethnicity + hh_education + diabetes, data = pfas)
+
+summary(ps_pfoa)
+ps_pfoa$sp   # extract Penalty 
+plot(ps_pfoa)
+
+ps_pfoa %>% 
+  broom::tidy() %>% 
+  select(-statistic) %>% 
+  knitr::kable(digits = 3)
 
 
-pfoa_ps %>% 
+
+ps_pfoa %>% 
  predict(., se.fit = TRUE, type = "terms" ) %>% 
  as.data.frame(.) %>% 
   mutate(pred = fit.s.n_pfoa.,
@@ -212,12 +286,12 @@ pfoa_ps %>%
 
 
 
-pfos_ps <- gam(bmi ~ s(n_pfos) + gender + age + race_ethnicity + hh_education + diabetes, data = pfas)
-summary(pfos_ps)
-pfos_ps$sp   # extract Penalty 
-plot(pfos_ps)
+ps_pfos <- gam(bmi ~ s(n_pfos) + gender + age + race_ethnicity + hh_education + diabetes, data = pfas)
+summary(ps_pfos)
+ps_pfos$sp   # extract Penalty 
+plot(ps_pfos)
 
-pfos_ps %>% 
+ps_pfos %>% 
  predict(., se.fit = TRUE, type = "terms" ) %>% 
  as.data.frame(.) %>% 
   mutate(pred = fit.s.n_pfos.,
