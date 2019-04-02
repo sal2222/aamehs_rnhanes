@@ -12,6 +12,7 @@ March 22, 2019
     -   [glm natural spline](#glm-natural-spline)
     -   [gam natural spline](#gam-natural-spline)
 -   [Penalized spline](#penalized-spline)
+-   [PCA Loading Models](#pca-loading-models)
 
 Load dataset from pipeline output
 
@@ -746,3 +747,111 @@ ps_pfos %>%
     ## Warning: Removed 1 rows containing missing values (geom_path).
 
 ![](rnhanes_nonlinear_files/figure-markdown_github/unnamed-chunk-5-4.png)
+
+PCA Loading Models
+------------------
+
+``` r
+pca_scores <- read.csv("pca_scores.csv")
+
+pfas_pca <-
+  left_join(pfas, pca_scores, by = "seqn") 
+
+ps_pfas_pca <-
+  gam(bmi ~ s(PC1) + s(PC2) + s(PC3) + gender + age + race_ethnicity + hh_education + diabetes, data = pfas_pca)
+
+
+summary(ps_pfas_pca)
+```
+
+    ## 
+    ## Family: gaussian 
+    ## Link function: identity 
+    ## 
+    ## Formula:
+    ## bmi ~ s(PC1) + s(PC2) + s(PC3) + gender + age + race_ethnicity + 
+    ##     hh_education + diabetes
+    ## 
+    ## Parametric coefficients:
+    ##                  Estimate Std. Error t value Pr(>|t|)    
+    ## (Intercept)     28.656035   0.844471  33.934  < 2e-16 ***
+    ## gender2          0.801932   0.326790   2.454 0.014219 *  
+    ## age              0.065374   0.009044   7.228 7.08e-13 ***
+    ## race_ethnicity2 -0.778798   0.567250  -1.373 0.169936    
+    ## race_ethnicity3 -1.617324   0.490249  -3.299 0.000988 ***
+    ## race_ethnicity4  0.334918   0.511273   0.655 0.512504    
+    ## race_ethnicity6 -4.335726   0.647448  -6.697 2.81e-11 ***
+    ## race_ethnicity7  0.087418   0.835691   0.105 0.916700    
+    ## hh_education2    0.027980   0.646090   0.043 0.965461    
+    ## hh_education3    0.907156   0.592615   1.531 0.125995    
+    ## hh_education4    0.738590   0.571979   1.291 0.196762    
+    ## hh_education5   -0.321689   0.599679  -0.536 0.591721    
+    ## diabetes2       -2.786054   0.508822  -5.475 4.95e-08 ***
+    ## diabetes3       -0.779644   1.159156  -0.673 0.501287    
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Approximate significance of smooth terms:
+    ##          edf Ref.df     F p-value  
+    ## s(PC1) 5.249  6.381 2.092  0.0404 *
+    ## s(PC2) 3.137  4.088 1.536  0.1852  
+    ## s(PC3) 1.000  1.000 3.826  0.0506 .
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## R-sq.(adj) =  0.126   Deviance explained = 13.6%
+    ## GCV = 44.387  Scale est. = 43.842    n = 1904
+
+``` r
+ps_pfas_pca$sp   # extract Penalty 
+```
+
+    ##       s(PC1)       s(PC2)       s(PC3) 
+    ## 9.040563e-02 7.413850e-01 1.008105e+09
+
+``` r
+plot(ps_pfas_pca)
+```
+
+![](rnhanes_nonlinear_files/figure-markdown_github/unnamed-chunk-6-1.png)![](rnhanes_nonlinear_files/figure-markdown_github/unnamed-chunk-6-2.png)![](rnhanes_nonlinear_files/figure-markdown_github/unnamed-chunk-6-3.png)
+
+``` r
+ps_pfas_pca %>% 
+  broom::tidy() %>% 
+  select(-statistic) %>% 
+  knitr::kable(digits = 3)
+```
+
+| term   |    edf|  ref.df|  p.value|
+|:-------|------:|-------:|--------:|
+| s(PC1) |  5.249|   6.381|    0.040|
+| s(PC2) |  3.137|   4.088|    0.185|
+| s(PC3) |  1.000|   1.000|    0.051|
+
+``` r
+ps_pfoa %>% 
+ predict(., se.fit = TRUE, type = "terms" ) %>% 
+ as.data.frame(.) %>% 
+  mutate(pred = fit.s.n_pfoa.,
+         se = se.fit.s.n_pfoa.,
+         lci = pred - 1.96*se,
+         uci = pred + 1.96*se) %>%
+  select(pred, se, lci, uci) %>% 
+  bind_cols(pfas) %>% 
+  mutate(pred_bmi = pred + mean(bmi),
+         lci_bmi = lci + mean(bmi),
+         uci_bmi = uci + mean(bmi)) %>% 
+  ggplot(., aes(n_pfoa)) + 
+      geom_line(aes(y = pred_bmi)) + 
+      geom_line(aes(y = lci_bmi), color = "darkgrey") + 
+      geom_line(aes(y = uci_bmi), color = "darkgrey") + 
+      xlab("n_pfoa") + 
+      ylab("Predicted BMI (95% CI)") +
+      ylim(20,35)
+```
+
+    ## Warning: Removed 1 rows containing missing values (geom_path).
+
+    ## Warning: Removed 2 rows containing missing values (geom_path).
+
+![](rnhanes_nonlinear_files/figure-markdown_github/unnamed-chunk-6-4.png)

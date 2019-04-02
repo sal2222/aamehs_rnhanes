@@ -315,9 +315,50 @@ ps_pfos %>%
 
 
 
+## PCA Loading Models
+
+
+```{r}
+pca_scores <- read.csv("pca_scores.csv")
+
+pfas_pca <-
+  left_join(pfas, pca_scores, by = "seqn") 
+
+ps_pfas_pca <-
+  gam(bmi ~ s(PC1) + s(PC2) + s(PC3) + gender + age + race_ethnicity + hh_education + diabetes, data = pfas_pca)
+
+
+summary(ps_pfas_pca)
+ps_pfas_pca$sp   # extract Penalty 
+plot(ps_pfas_pca)
+
+ps_pfas_pca %>% 
+  broom::tidy() %>% 
+  select(-statistic) %>% 
+  knitr::kable(digits = 3)
 
 
 
+ps_pfoa %>% 
+ predict(., se.fit = TRUE, type = "terms" ) %>% 
+ as.data.frame(.) %>% 
+  mutate(pred = fit.s.n_pfoa.,
+         se = se.fit.s.n_pfoa.,
+         lci = pred - 1.96*se,
+         uci = pred + 1.96*se) %>%
+  select(pred, se, lci, uci) %>% 
+  bind_cols(pfas) %>% 
+  mutate(pred_bmi = pred + mean(bmi),
+         lci_bmi = lci + mean(bmi),
+         uci_bmi = uci + mean(bmi)) %>% 
+  ggplot(., aes(n_pfoa)) + 
+      geom_line(aes(y = pred_bmi)) + 
+      geom_line(aes(y = lci_bmi), color = "darkgrey") + 
+      geom_line(aes(y = uci_bmi), color = "darkgrey") + 
+      xlab("n_pfoa") + 
+      ylab("Predicted BMI (95% CI)") +
+      ylim(20,35)
+```
 
 
 
