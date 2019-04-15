@@ -161,7 +161,7 @@ Correlations
 ``` r
 cor_pfas <-
   pfas %>% 
-    select(bmi, everything(), -(seqn:diabetes)) %>% 
+    select(-bmi, -(seqn:diabetes)) %>% 
     scale() %>% 
     cor()
   
