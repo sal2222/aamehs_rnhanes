@@ -205,17 +205,24 @@ ns_pfoa %>%
 
 
 
+
+
+
+```
+
+
+```{r ns_pfos}
 ns_pfos <- lm(bmi ~ ns(n_pfos, df = 3) + gender + age + race_ethnicity + hh_education + diabetes, data = pfas)
 
 summary(ns_pfos)
 AIC(ns_pfos)
-plot(ns_pfos)
+
 
 ns_pfos %>% 
  predict(., se.fit = TRUE, type = "terms" ) %>% 
  as.data.frame(.) %>% 
-  mutate(pred = fit.ns.n_pfos..df...3.,
-         se = se.fit.ns.n_pfos..df...3.,
+  mutate(pred = fit.ns.n_pfos..df...3. ,
+         se = se.fit.ns.n_pfos..df...3. ,
          lci = pred - 1.96*se,
          uci = pred + 1.96*se) %>%
   select(pred, se, lci, uci) %>% 
@@ -230,8 +237,6 @@ ns_pfos %>%
       xlab("n_pfos") + 
       ylab("Predicted BMI (95% CI)") +
       ylim(20,35)
-
-
 ```
 
 
@@ -239,10 +244,9 @@ ns_pfos %>%
 
 
 
-```{r}
+```{r gam_ns}
 pfoa_gam_ns <- gam(bmi ~ ns(n_pfoa, df = 3) + gender + age + race_ethnicity + hh_education + diabetes, data = pfas)
 
-termplot(pfoa_gam_ns, se = TRUE)
 
 summary(pfoa_gam_ns)
 
@@ -272,7 +276,7 @@ pfoa_gam_ns %>%
 ```
 ```
 
-```{r}
+```{r gam_ns_pfos}
 
 pfos_gam_ns <- gam(bmi ~ ns(n_pfos, df = 3) + gender + age + race_ethnicity + hh_education + diabetes, data = pfas)
 
@@ -283,7 +287,7 @@ termplot(pfos_gam_ns, se = TRUE)
 
 ## Penalized spline
 
-```{r}
+```{r ps_pfoa}
 ps_pfoa <- gam(bmi ~ s(n_pfoa) + gender + age + race_ethnicity + hh_education + diabetes, data = pfas)
 
 summary(ps_pfoa)
@@ -322,6 +326,11 @@ ps_pfoa %>%
 
 
 
+
+```
+
+
+```{r ps_pfos}
 ps_pfos <- gam(bmi ~ s(n_pfos) + gender + age + race_ethnicity + hh_education + diabetes, data = pfas)
 summary(ps_pfos)
 ps_pfos$sp   # extract Penalty 
@@ -348,8 +357,6 @@ ps_pfos %>%
       ylim(20,35)
 
 ```
-
-
 
 ## PCA Loading Models
 

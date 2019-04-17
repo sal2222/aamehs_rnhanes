@@ -531,17 +531,11 @@ AIC(ns_pfos)
     ## [1] 12628.88
 
 ``` r
-plot(ns_pfos)
-```
-
-![](rnhanes_nonlinear_files/figure-markdown_github/pfoa_natural_spline-6.png)![](rnhanes_nonlinear_files/figure-markdown_github/pfoa_natural_spline-7.png)![](rnhanes_nonlinear_files/figure-markdown_github/pfoa_natural_spline-8.png)![](rnhanes_nonlinear_files/figure-markdown_github/pfoa_natural_spline-9.png)
-
-``` r
 ns_pfos %>% 
  predict(., se.fit = TRUE, type = "terms" ) %>% 
  as.data.frame(.) %>% 
-  mutate(pred = fit.ns.n_pfos..df...3.,
-         se = se.fit.ns.n_pfos..df...3.,
+  mutate(pred = fit.ns.n_pfos..df...3. ,
+         se = se.fit.ns.n_pfos..df...3. ,
          lci = pred - 1.96*se,
          uci = pred + 1.96*se) %>%
   select(pred, se, lci, uci) %>% 
@@ -560,19 +554,14 @@ ns_pfos %>%
 
     ## Warning: Removed 2 rows containing missing values (geom_path).
 
-![](rnhanes_nonlinear_files/figure-markdown_github/pfoa_natural_spline-10.png)
+![](rnhanes_nonlinear_files/figure-markdown_github/ns_pfos-1.png)
 
 ### gam natural spline
 
 ``` r
 pfoa_gam_ns <- gam(bmi ~ ns(n_pfoa, df = 3) + gender + age + race_ethnicity + hh_education + diabetes, data = pfas)
 
-termplot(pfoa_gam_ns, se = TRUE)
-```
 
-![](rnhanes_nonlinear_files/figure-markdown_github/unnamed-chunk-4-1.png)![](rnhanes_nonlinear_files/figure-markdown_github/unnamed-chunk-4-2.png)![](rnhanes_nonlinear_files/figure-markdown_github/unnamed-chunk-4-3.png)![](rnhanes_nonlinear_files/figure-markdown_github/unnamed-chunk-4-4.png)![](rnhanes_nonlinear_files/figure-markdown_github/unnamed-chunk-4-5.png)![](rnhanes_nonlinear_files/figure-markdown_github/unnamed-chunk-4-6.png)
-
-``` r
 summary(pfoa_gam_ns)
 ```
 
@@ -634,7 +623,7 @@ pfoa_gam_ns %>%
 
     ## Warning: Removed 1 rows containing missing values (geom_path).
 
-![](rnhanes_nonlinear_files/figure-markdown_github/unnamed-chunk-4-7.png) \`\`\`
+![](rnhanes_nonlinear_files/figure-markdown_github/gam_ns-1.png) \`\`\`
 
 ``` r
 pfos_gam_ns <- gam(bmi ~ ns(n_pfos, df = 3) + gender + age + race_ethnicity + hh_education + diabetes, data = pfas)
@@ -642,7 +631,7 @@ pfos_gam_ns <- gam(bmi ~ ns(n_pfos, df = 3) + gender + age + race_ethnicity + hh
 termplot(pfos_gam_ns, se = TRUE)
 ```
 
-![](rnhanes_nonlinear_files/figure-markdown_github/unnamed-chunk-5-1.png)![](rnhanes_nonlinear_files/figure-markdown_github/unnamed-chunk-5-2.png)![](rnhanes_nonlinear_files/figure-markdown_github/unnamed-chunk-5-3.png)![](rnhanes_nonlinear_files/figure-markdown_github/unnamed-chunk-5-4.png)![](rnhanes_nonlinear_files/figure-markdown_github/unnamed-chunk-5-5.png)![](rnhanes_nonlinear_files/figure-markdown_github/unnamed-chunk-5-6.png)
+![](rnhanes_nonlinear_files/figure-markdown_github/gam_ns_pfos-1.png)![](rnhanes_nonlinear_files/figure-markdown_github/gam_ns_pfos-2.png)![](rnhanes_nonlinear_files/figure-markdown_github/gam_ns_pfos-3.png)![](rnhanes_nonlinear_files/figure-markdown_github/gam_ns_pfos-4.png)![](rnhanes_nonlinear_files/figure-markdown_github/gam_ns_pfos-5.png)![](rnhanes_nonlinear_files/figure-markdown_github/gam_ns_pfos-6.png)
 
 Penalized spline
 ----------------
@@ -700,7 +689,7 @@ ps_pfoa$sp   # extract Penalty
 plot(ps_pfoa)
 ```
 
-![](rnhanes_nonlinear_files/figure-markdown_github/unnamed-chunk-6-1.png)
+![](rnhanes_nonlinear_files/figure-markdown_github/ps_pfoa-1.png)
 
 ``` r
 ps_pfoa %>% 
@@ -739,7 +728,7 @@ ps_pfoa %>%
 
     ## Warning: Removed 2 rows containing missing values (geom_path).
 
-![](rnhanes_nonlinear_files/figure-markdown_github/unnamed-chunk-6-2.png)
+![](rnhanes_nonlinear_files/figure-markdown_github/ps_pfoa-2.png)
 
 ``` r
 ps_pfos <- gam(bmi ~ s(n_pfos) + gender + age + race_ethnicity + hh_education + diabetes, data = pfas)
@@ -793,7 +782,7 @@ ps_pfos$sp   # extract Penalty
 plot(ps_pfos)
 ```
 
-![](rnhanes_nonlinear_files/figure-markdown_github/unnamed-chunk-6-3.png)
+![](rnhanes_nonlinear_files/figure-markdown_github/ps_pfos-1.png)
 
 ``` r
 ps_pfos %>% 
@@ -819,7 +808,7 @@ ps_pfos %>%
 
     ## Warning: Removed 1 rows containing missing values (geom_path).
 
-![](rnhanes_nonlinear_files/figure-markdown_github/unnamed-chunk-6-4.png)
+![](rnhanes_nonlinear_files/figure-markdown_github/ps_pfos-2.png)
 
 PCA Loading Models
 ------------------
@@ -886,7 +875,7 @@ ps_pfas_pca$sp   # extract Penalty
 plot(ps_pfas_pca)
 ```
 
-![](rnhanes_nonlinear_files/figure-markdown_github/unnamed-chunk-7-1.png)![](rnhanes_nonlinear_files/figure-markdown_github/unnamed-chunk-7-2.png)![](rnhanes_nonlinear_files/figure-markdown_github/unnamed-chunk-7-3.png)
+![](rnhanes_nonlinear_files/figure-markdown_github/unnamed-chunk-4-1.png)![](rnhanes_nonlinear_files/figure-markdown_github/unnamed-chunk-4-2.png)![](rnhanes_nonlinear_files/figure-markdown_github/unnamed-chunk-4-3.png)
 
 ``` r
 ps_pfas_pca %>% 
@@ -927,7 +916,7 @@ ps_pfoa %>%
 
     ## Warning: Removed 2 rows containing missing values (geom_path).
 
-![](rnhanes_nonlinear_files/figure-markdown_github/unnamed-chunk-7-4.png)
+![](rnhanes_nonlinear_files/figure-markdown_github/unnamed-chunk-4-4.png)
 
 Compare Models
 --------------
