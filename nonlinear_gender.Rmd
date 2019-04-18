@@ -1,0 +1,401 @@
+---
+title: "nonlinear_gender"
+author: "SL"
+date: "April 17, 2019"
+output: 
+  github_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, mesage = FALSE, warning = FALSE)
+library(tidyverse)
+library(mgcv)
+library(splines)
+library(ggcorrplot)
+library(corrplot)
+library(modelr)
+library(voxel)
+library(gridExtra)
+
+```
+
+Load dataset from pipeline output
+```{r load}
+pfas <- read.csv("aamehs_data.csv") %>% 
+   select(seqn, gender, age, race_ethnicity, hh_education, pfdea, pfhxs, me_pfosa_acoh, pfna, pfua, pfdoa, n_pfoa, sb_pfoa, n_pfos, sm_pfos, bmi) %>% 
+  mutate(gender = factor(gender),
+         race_ethnicity = factor(race_ethnicity),
+         hh_education = factor(hh_education)) %>% 
+  drop_na()
+
+
+pfas_male <-
+  pfas %>%
+  filter(gender == 1)
+
+
+pfas_female <-
+  pfas %>%
+  filter(gender == 2)
+
+```
+
+
+## Data Summary
+```{r, eval = FALSE}
+
+pfas %>% 
+  select(gender, age, race_ethnicity, hh_education, bmi, everything(), -seqn) %>% 
+  summary(.) 
+
+```
+
+
+## Plots
+```{r}
+pfas_male %>%
+    select(bmi, pfdea:sm_pfos) %>%
+    gather(pfdea:sm_pfos, key = "variable", value = "value") %>% 
+  ggplot(aes(value, bmi)) +
+      geom_point(size = 0.5) +
+    geom_smooth() +
+    facet_wrap(~variable) +
+    theme_bw()
+
+
+pfas_female %>%
+    select(bmi, pfdea:sm_pfos) %>%
+    gather(pfdea:sm_pfos, key = "variable", value = "value") %>% 
+  ggplot(aes(value, bmi)) +
+      geom_point(size = 0.5) +
+    geom_smooth() +
+    facet_wrap(~variable) +
+    theme_bw()
+
+```
+
+## Correlations
+
+```{r}
+cor_pfas_male <-
+  pfas %>%
+    select(-bmi, -(seqn:hh_education)) %>% 
+    scale() %>% 
+    cor()
+  
+
+cor_pfas_female <-
+  pfas_female %>%
+    select(-bmi, -(seqn:hh_education)) %>% 
+    scale() %>% 
+    cor()
+
+
+cor_pfas_male %>%
+  corrplot::corrplot(., type = "upper",  method = "ellipse",
+                        tl.col = "black", tl.srt = 90, tl.cex = 0.7,
+                        addCoef.col = "black", number.cex = 0.7)
+
+
+
+cor_pfas_female %>%
+  corrplot::corrplot(., type = "upper",  method = "ellipse",
+                        tl.col = "black", tl.srt = 90, tl.cex = 0.7,
+                        addCoef.col = "black", number.cex = 0.7)
+
+
+```
+
+## Linear
+
+```{r linear_map}
+
+nest_lm_pfas_male <-
+  pfas_male %>%
+  gather(pfdea:sm_pfos, key = "chemical", value = "concentration") %>% 
+  group_by(chemical) %>% 
+  nest() %>% 
+  mutate(models = map(data, ~lm(bmi ~ concentration + age + race_ethnicity + hh_education, data = .x)),
+         pred  = map2(data, models, modelr::add_predictions),
+         resids = map2(data, models, add_residuals))
+
+
+nest_lm_pfas_female <-
+  pfas_female %>%
+  gather(pfdea:sm_pfos, key = "chemical", value = "concentration") %>% 
+  group_by(chemical) %>% 
+  nest() %>% 
+  mutate(models = map(data, ~lm(bmi ~ concentration + age + race_ethnicity + hh_education, data = .x)),
+         pred  = map2(data, models, modelr::add_predictions),
+         resids = map2(data, models, add_residuals))
+
+```
+
+
+### PFAS beta coefficient estimate and model summary statistics
+```{r lm_broom}
+lm_pfas_coefs_male <-
+  nest_lm_pfas_male %>% 
+    mutate(models = map(models, broom::tidy)) %>% 
+    select(-data, -pred, -resids) %>% 
+    unnest() %>%  
+    filter(term == "concentration") %>% 
+    select(-term)
+
+lm_pfas_coefs_female <-
+  nest_lm_pfas_female %>% 
+    mutate(models = map(models, broom::tidy)) %>% 
+    select(-data, -pred, -resids) %>% 
+    unnest() %>%  
+    filter(term == "concentration") %>% 
+    select(-term)
+
+
+
+
+lm_all_coefs_male <-
+  nest_lm_pfas_male %>% 
+    mutate(models = map(models, broom::tidy)) %>% 
+    select(-data, -pred, -resids) %>% 
+    unnest() %>%  
+    mutate(term = fct_inorder(term)) %>% 
+    select(chemical, term, estimate) %>% 
+    spread(key = term, value = estimate) 
+
+lm_all_coefs_female <-
+  nest_lm_pfas_female %>% 
+    mutate(models = map(models, broom::tidy)) %>% 
+    select(-data, -pred, -resids) %>% 
+    unnest() %>%  
+    mutate(term = fct_inorder(term)) %>% 
+    select(chemical, term, estimate) %>% 
+    spread(key = term, value = estimate) 
+
+
+
+lm_model_summary_male <-
+nest_lm_pfas_male %>% 
+  mutate(models = map(models, broom::glance)) %>% 
+  select(-data, -pred, -resids) %>% 
+  unnest() 
+
+
+lm_model_summary_female <-
+nest_lm_pfas_female %>% 
+  mutate(models = map(models, broom::glance)) %>% 
+  select(-data, -pred, -resids) %>% 
+  unnest() 
+
+
+lm_pfas_coefs_male %>%
+  select(-statistic) %>% 
+  left_join(lm_model_summary_male, by = "chemical") %>%
+  select(-r.squared, -sigma, -df, -p.value.y, -deviance, -df.residual) %>% 
+  knitr::kable(digits = 3)
+
+
+lm_pfas_coefs_female %>%
+  select(-statistic) %>% 
+  left_join(lm_model_summary_female, by = "chemical") %>%
+  select(-r.squared, -sigma, -df, -p.value.y, -deviance, -df.residual) %>% 
+  knitr::kable(digits = 3)
+
+```
+
+### Linear predicted values plots
+
+```{r lm_plot}
+
+nest_lm_pfas_male %>% 
+  unnest(pred) %>% 
+    ggplot(aes(concentration, pred)) +
+      geom_point(size = 0.5) +
+    geom_smooth(method = lm) +
+    facet_wrap(~chemical) +
+    scale_x_log10() +
+    theme_bw()
+
+
+nest_lm_pfas_female %>% 
+  unnest(pred) %>% 
+    ggplot(aes(concentration, pred)) +
+      geom_point(size = 0.5) +
+    geom_smooth(method = lm) +
+    facet_wrap(~chemical) +
+    scale_x_log10() +
+    theme_bw()
+
+```
+
+
+## Penalized spline GAMs
+
+```{r ps_pfas}
+
+nest_ps_pfas_male <-
+  pfas_male %>%
+  select(-pfdoa, -sb_pfoa) %>% 
+  gather(pfdea:sm_pfos, key = "chemical", value = "concentration") %>% 
+  group_by(chemical) %>% 
+  nest() %>% 
+  mutate(models = map(data, ~gam(bmi ~ s(concentration)  + age + race_ethnicity + hh_education, data = .x)),
+         pred  = map2(data, models, modelr::add_predictions),
+         resids = map2(data, models, add_residuals))
+
+
+
+nest_ps_pfas_female <-
+  pfas_female %>%
+  select(-pfdoa, -sb_pfoa) %>% 
+  gather(pfdea:sm_pfos, key = "chemical", value = "concentration") %>% 
+  group_by(chemical) %>% 
+  nest() %>% 
+  mutate(models = map(data, ~gam(bmi ~ s(concentration) + age + race_ethnicity + hh_education, data = .x)),
+         pred  = map2(data, models, modelr::add_predictions),
+         resids = map2(data, models, add_residuals))
+
+```
+
+
+GAM penalized spline PFAS estimated degrees of freedom and model summary statistics
+```{r ps_broom}
+ps_edfs_male <-
+  nest_ps_pfas_male %>% 
+    mutate(models = map(models, broom::tidy)) %>% 
+    select(-data, -pred, -resids) %>% 
+    unnest() %>%  
+    select(-term)
+
+
+ps_edfs_female <-
+  nest_ps_pfas_female %>% 
+    mutate(models = map(models, broom::tidy)) %>% 
+    select(-data, -pred, -resids) %>% 
+    unnest() %>%  
+    select(-term)
+
+ps_summary_male <-
+  nest_ps_pfas_male %>% 
+    mutate(models = map(models, broom::glance)) %>% 
+    select(-data, -pred, -resids) %>% 
+    unnest() 
+
+ps_summary_female <-
+  nest_ps_pfas_female %>% 
+    mutate(models = map(models, broom::glance)) %>% 
+    select(-data, -pred, -resids) %>% 
+    unnest() 
+
+ps_edfs_male %>% 
+  left_join(ps_summary_male, by = "chemical") %>% 
+  select(-df, -deviance, -df.residual) %>%  
+    knitr::kable(digits = 3)
+
+
+ps_edfs_female %>% 
+  left_join(ps_summary_male, by = "chemical") %>% 
+  select(-df, -deviance, -df.residual) %>%  
+    knitr::kable(digits = 3)
+
+```
+
+Penalized spline predicted values plots
+```{r ps_plot}
+
+nest_ps_pfas_male %>% 
+  unnest(pred) %>% 
+    ggplot(aes(concentration, pred)) +
+      geom_point(size = 0.5) +
+    geom_smooth() +
+    facet_wrap(~chemical) +
+    scale_x_log10() +
+    theme_bw()
+
+
+nest_ps_pfas_female %>% 
+  unnest(pred) %>% 
+    ggplot(aes(concentration, pred)) +
+      geom_point(size = 0.5) +
+    geom_smooth() +
+    facet_wrap(~chemical) +
+    scale_x_log10() +
+    theme_bw()
+```
+
+
+## PCA Model
+
+```{r pca_gam, warning = FALSE}
+pca_scores <- read.csv("pca_scores.csv")
+
+pfas_pca <-
+  left_join(pfas, pca_scores, by = "seqn") 
+
+
+pfas_pca_male <-
+  left_join(pfas, pca_scores, by = "seqn") %>% 
+  filter(gender == 1)
+
+pfas_pca_female <-
+  left_join(pfas, pca_scores, by = "seqn") %>% 
+  filter(gender == 2)
+  
+ps_pfas_pca_male <-
+  gam(bmi ~ s(PC1) + s(PC2) + s(PC3)  + age + race_ethnicity + hh_education, data = pfas_pca_male)
+
+ps_pfas_pca_female <-
+  gam(bmi ~ s(PC1) + s(PC2) + s(PC3) + age + race_ethnicity + hh_education, data = pfas_pca_female)
+
+```
+
+
+```{r pca_broom}
+
+ps_pfas_pca_male %>% 
+  broom::tidy() %>% 
+  select(-statistic) %>% 
+  knitr::kable(digits = 3)
+
+ps_pfas_pca_female %>% 
+  broom::tidy() %>% 
+  select(-statistic) %>% 
+  knitr::kable(digits = 3)
+
+
+
+
+ps_pfas_pca_male %>% 
+  broom::glance() %>% 
+  knitr::kable(digits = 3)
+
+ps_pfas_pca_female %>% 
+  broom::glance() %>% 
+  knitr::kable(digits = 3)
+
+```
+
+
+Plot of PCA penalized splines with observed BMI points
+```{r pca_plot, warning = FALSE}
+
+pca_vars <- c("PC1", "PC2", "PC3")
+
+map(pca_vars, function(x){
+  p <- voxel::plotGAM(ps_pfas_pca_male, smooth.cov = x) +
+    geom_point(data = pfas_pca_male, aes_string(y = "bmi", x = x ), alpha = 0.2, size = 0.5) +
+    geom_rug(data = pfas_pca_male, aes_string(y = "bmi", x = x ), alpha = 0.2)
+  g <- ggplotGrob(p) 
+  }) %>%
+  {grid.arrange(grobs = (.), ncol = 3, nrow = 1)} 
+
+
+map(pca_vars, function(x){
+  p <- voxel::plotGAM(ps_pfas_pca_female, smooth.cov = x) +
+    geom_point(data = pfas_pca_female, aes_string(y = "bmi", x = x ), alpha = 0.2, size = 0.5) +
+    geom_rug(data = pfas_pca_female, aes_string(y = "bmi", x = x ), alpha = 0.2)
+  g <- ggplotGrob(p) 
+  }) %>%
+  {grid.arrange(grobs = (.), ncol = 3, nrow = 1)} 
+```
+

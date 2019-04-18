@@ -7,28 +7,15 @@ April 17, 2019
 -   [Plots](#plots)
 -   [Correlations](#correlations)
 -   [Linear](#linear)
--   [Penalized spline](#penalized-spline)
+    -   [PFAS beta coefficient estimate and model summary statistics](#pfas-beta-coefficient-estimate-and-model-summary-statistics)
+    -   [Linear predicted values plots](#linear-predicted-values-plots)
+-   [Penalized spline GAMs](#penalized-spline-gams)
 -   [PCA Model](#pca-model)
 
 Load dataset from pipeline output
 
-``` r
-pfas <- read.csv("aamehs_data.csv") %>% 
-   select(seqn, gender, age, race_ethnicity, hh_education, pfdea, pfhxs, me_pfosa_acoh, pfna, pfua, pfdoa, n_pfoa, sb_pfoa, n_pfos, sm_pfos, bmi) %>% 
-  mutate(gender = factor(gender),
-         race_ethnicity = factor(race_ethnicity),
-         hh_education = factor(hh_education)) %>% 
-  drop_na()
-```
-
 Data Summary
 ------------
-
-``` r
-pfas %>% 
-  select(gender, age, race_ethnicity, hh_education, bmi, everything(), -seqn) %>% 
-  summary(.) 
-```
 
     ##  gender       age        race_ethnicity hh_education      bmi       
     ##  1:933   Min.   :12.00   1:340          1:205        Min.   :14.50  
@@ -62,97 +49,19 @@ pfas %>%
 Plots
 -----
 
-``` r
-pfas %>%
-    select(bmi, pfdea:sm_pfos) %>%
-    gather(pfdea:sm_pfos, key = "variable", value = "value") %>% 
-  ggplot(aes(value, bmi)) +
-      geom_point(size = 0.5) +
-    geom_smooth() +
-    facet_wrap(~variable) +
-    theme_bw()
-```
-
     ## `geom_smooth()` using method = 'gam' and formula 'y ~ s(x, bs = "cs")'
-
-    ## Warning: Computation failed in `stat_smooth()`:
-    ## x has insufficient unique values to support 10 knots: reduce k.
-
-    ## Warning: Computation failed in `stat_smooth()`:
-    ## x has insufficient unique values to support 10 knots: reduce k.
 
 ![](rnhanes_nonlinear_final_files/figure-markdown_github/unnamed-chunk-2-1.png)
 
 Correlations
 ------------
 
-``` r
-cor_pfas <-
-  pfas %>% 
-    select(-bmi, -(seqn:hh_education)) %>% 
-    scale() %>% 
-    cor()
-  
-
-
-cor_pfas %>%
-  corrplot::corrplot(., type = "upper",  method = "ellipse",
-                        tl.col = "black", tl.srt = 90, tl.cex = 0.7,
-                        addCoef.col = "black", number.cex = 0.7)
-```
-
 ![](rnhanes_nonlinear_final_files/figure-markdown_github/unnamed-chunk-3-1.png)
 
 Linear
 ------
 
-``` r
-nest_lm_pfas <-
-  pfas %>%
-  gather(pfdea:sm_pfos, key = "chemical", value = "concentration") %>% 
-  group_by(chemical) %>% 
-  nest() %>% 
-  mutate(models = map(data, ~lm(bmi ~ concentration + gender + age + race_ethnicity + hh_education, data = .x)),
-         pred  = map2(data, models, modelr::add_predictions),
-         resids = map2(data, models, add_residuals))
-```
-
-Linear regression model output
-
-PFAS beta coefficient estimate and model summary statistics
-
-``` r
-lm_pfas_coefs <-
-  nest_lm_pfas %>% 
-    mutate(models = map(models, broom::tidy)) %>% 
-    select(-data, -pred, -resids) %>% 
-    unnest() %>%  
-    filter(term == "concentration") %>% 
-    select(-term)
-
-
-lm_all_coefs <-
-  nest_lm_pfas %>% 
-    mutate(models = map(models, broom::tidy)) %>% 
-    select(-data, -pred, -resids) %>% 
-    unnest() %>%  
-    mutate(term = fct_inorder(term)) %>% 
-    select(chemical, term, estimate) %>% 
-    spread(key = term, value = estimate) 
-
-lm_model_summary <-
-nest_lm_pfas %>% 
-  mutate(models = map(models, broom::glance)) %>% 
-  select(-data, -pred, -resids) %>% 
-  unnest() 
-
-
-lm_pfas_coefs %>%
-  select(-statistic) %>% 
-  left_join(lm_model_summary, by = "chemical") %>%
-  select(-r.squared, -sigma, -df, -p.value.y, -deviance, -df.residual) %>% 
-  knitr::kable(digits = 3)
-```
+### PFAS beta coefficient estimate and model summary statistics
 
 | chemical        |  estimate|  std.error|  p.value.x|  adj.r.squared|  statistic|     logLik|       AIC|       BIC|
 |:----------------|---------:|----------:|----------:|--------------:|----------:|----------:|---------:|---------:|
@@ -167,57 +76,14 @@ lm_pfas_coefs %>%
 | n\_pfos         |    -0.067|      0.025|      0.007|          0.104|     19.377|  -6324.356|  12676.71|  12754.45|
 | sm\_pfos        |    -0.178|      0.099|      0.074|          0.102|     18.989|  -6326.445|  12680.89|  12758.63|
 
-Linear predicted values plots
-
-``` r
-nest_lm_pfas %>% 
-  unnest(pred) %>% 
-    ggplot(aes(concentration, pred)) +
-      geom_point(size = 0.5) +
-    geom_smooth(method = lm) +
-    facet_wrap(~chemical) +
-    scale_x_log10() +
-    theme_bw()
-```
+### Linear predicted values plots
 
 ![](rnhanes_nonlinear_final_files/figure-markdown_github/lm_plot-1.png)
 
-Penalized spline
-----------------
-
-``` r
-nest_ps_pfas <-
-  pfas %>%
-  select(-pfdoa, -sb_pfoa) %>% 
-  gather(pfdea:sm_pfos, key = "chemical", value = "concentration") %>% 
-  group_by(chemical) %>% 
-  nest() %>% 
-  mutate(models = map(data, ~gam(bmi ~ s(concentration) + gender + age + race_ethnicity + hh_education, data = .x)),
-         pred  = map2(data, models, modelr::add_predictions),
-         resids = map2(data, models, add_residuals))
-```
+Penalized spline GAMs
+---------------------
 
 GAM penalized spline PFAS estimated degrees of freedom and model summary statistics
-
-``` r
-ps_edfs <-
-  nest_ps_pfas %>% 
-    mutate(models = map(models, broom::tidy)) %>% 
-    select(-data, -pred, -resids) %>% 
-    unnest() %>%  
-    select(-term)
-
-ps_summary <-
-  nest_ps_pfas %>% 
-    mutate(models = map(models, broom::glance)) %>% 
-    select(-data, -pred, -resids) %>% 
-    unnest() 
-
-ps_edfs %>% 
-  left_join(ps_summary, by = "chemical") %>% 
-  select(-df, -deviance, -df.residual) %>%  
-    knitr::kable(digits = 3)
-```
 
 | chemical        |    edf|  ref.df|  statistic|  p.value|     logLik|       AIC|       BIC|
 |:----------------|------:|-------:|----------:|--------:|----------:|---------:|---------:|
@@ -232,35 +98,12 @@ ps_edfs %>%
 
 Penalized spline predicted values plots
 
-``` r
-nest_ps_pfas %>% 
-  unnest(pred) %>% 
-    ggplot(aes(concentration, pred)) +
-      geom_point(size = 0.5) +
-    geom_smooth() +
-    facet_wrap(~chemical) +
-    scale_x_log10() +
-    theme_bw()
-```
-
     ## `geom_smooth()` using method = 'gam' and formula 'y ~ s(x, bs = "cs")'
 
 ![](rnhanes_nonlinear_final_files/figure-markdown_github/ps_plot-1.png)
 
 PCA Model
 ---------
-
-``` r
-pca_scores <- read.csv("pca_scores.csv")
-
-pfas_pca <-
-  left_join(pfas, pca_scores, by = "seqn") 
-  
-ps_pfas_pca <-
-  gam(bmi ~ s(PC1) + s(PC2) + s(PC3) + gender + age + race_ethnicity + hh_education, data = pfas_pca)
-
-summary(ps_pfas_pca)
-```
 
     ## 
     ## Family: gaussian 
@@ -298,41 +141,14 @@ summary(ps_pfas_pca)
     ## R-sq.(adj) =  0.112   Deviance explained = 12.1%
     ## GCV =  45.04  Scale est. = 44.529    n = 1906
 
-``` r
-ps_pfas_pca %>% 
-  broom::tidy() %>% 
-  select(-statistic) %>% 
-  knitr::kable(digits = 3)
-```
-
 | term   |    edf|  ref.df|  p.value|
 |:-------|------:|-------:|--------:|
 | s(PC1) |  5.349|   6.488|    0.019|
 | s(PC2) |  3.269|   4.247|    0.120|
 | s(PC3) |  1.000|   1.000|    0.032|
 
-``` r
-ps_pfas_pca %>% 
-  broom::glance() %>% 
-  knitr::kable(digits = 3)
-```
-
 |      df|     logLik|       AIC|       BIC|  deviance|  df.residual|
 |-------:|----------:|---------:|---------:|---------:|------------:|
 |  21.618|  -6311.352|  12667.94|  12793.53|  83909.97|     1884.382|
 
-Plot of PCA penalized splines with observed BMI points
-
-``` r
-pca_vars <- c("PC1", "PC2", "PC3")
-
-map(pca_vars, function(x){
-  p <- voxel::plotGAM(ps_pfas_pca, smooth.cov = x) +
-    geom_point(data = pfas_pca, aes_string(y = "bmi", x = x ), alpha = 0.2, size = 0.5) +
-    geom_rug(data = pfas_pca, aes_string(y = "bmi", x = x ), alpha = 0.2)
-  g <- ggplotGrob(p) 
-  }) %>%
-  {grid.arrange(grobs = (.), ncol = 3, nrow = 1)} 
-```
-
-![](rnhanes_nonlinear_final_files/figure-markdown_github/pca_plot-1.png)
+Plot of PCA penalized splines with observed BMI points ![](rnhanes_nonlinear_final_files/figure-markdown_github/pca_plot-1.png)
