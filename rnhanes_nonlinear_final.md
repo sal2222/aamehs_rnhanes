@@ -3,17 +3,12 @@ rnhanes\_nonlinear\_final
 SL
 April 17, 2019
 
--   [Tables](#tables)
+-   [Data Summary](#data-summary)
 -   [Plots](#plots)
 -   [Correlations](#correlations)
 -   [Linear](#linear)
-    -   [Linear model](#linear-model)
--   [Natural Spline Term](#natural-spline-term)
-    -   [glm natural spline](#glm-natural-spline)
-    -   [gam natural spline](#gam-natural-spline)
 -   [Penalized spline](#penalized-spline)
--   [PCA Loading Models](#pca-loading-models)
--   [Compare Models](#compare-models)
+-   [PCA Model](#pca-model)
 
 Load dataset from pipeline output
 
@@ -26,8 +21,8 @@ pfas <- read.csv("aamehs_data.csv") %>%
   drop_na()
 ```
 
-Tables
-------
+Data Summary
+------------
 
 ``` r
 pfas %>% 
@@ -111,8 +106,6 @@ cor_pfas %>%
 Linear
 ------
 
-### Linear model
-
 ``` r
 nest_lm_pfas <-
   pfas %>%
@@ -122,30 +115,59 @@ nest_lm_pfas <-
   mutate(models = map(data, ~lm(bmi ~ concentration + gender + age + race_ethnicity + hh_education, data = .x)),
          pred  = map2(data, models, modelr::add_predictions),
          resids = map2(data, models, add_residuals))
+```
+
+Linear regression model output
+
+PFAS beta coefficient estimate and model summary statistics
+
+``` r
+lm_pfas_coefs <-
+  nest_lm_pfas %>% 
+    mutate(models = map(models, broom::tidy)) %>% 
+    select(-data, -pred, -resids) %>% 
+    unnest() %>%  
+    filter(term == "concentration") %>% 
+    select(-term)
 
 
+lm_all_coefs <-
+  nest_lm_pfas %>% 
+    mutate(models = map(models, broom::tidy)) %>% 
+    select(-data, -pred, -resids) %>% 
+    unnest() %>%  
+    mutate(term = fct_inorder(term)) %>% 
+    select(chemical, term, estimate) %>% 
+    spread(key = term, value = estimate) 
+
+lm_model_summary <-
 nest_lm_pfas %>% 
-  mutate(models = map(models, broom::tidy)) %>% 
+  mutate(models = map(models, broom::glance)) %>% 
   select(-data, -pred, -resids) %>% 
-  unnest() %>%  
-  select(chemical, term, estimate) %>% 
-  mutate(term = fct_inorder(term)) %>% 
-  spread(key = term, value = estimate) %>% 
+  unnest() 
+
+
+lm_pfas_coefs %>%
+  select(-statistic) %>% 
+  left_join(lm_model_summary, by = "chemical") %>%
+  select(-r.squared, -sigma, -df, -p.value.y, -deviance, -df.residual) %>% 
   knitr::kable(digits = 3)
 ```
 
-| chemical        |  (Intercept)|  concentration|  gender2|    age|  race\_ethnicity2|  race\_ethnicity3|  race\_ethnicity4|  race\_ethnicity6|  race\_ethnicity7|  hh\_education2|  hh\_education3|  hh\_education4|  hh\_education5|
-|:----------------|------------:|--------------:|--------:|------:|-----------------:|-----------------:|-----------------:|-----------------:|-----------------:|---------------:|---------------:|---------------:|---------------:|
-| me\_pfosa\_acoh |       26.559|         -1.616|    0.930|  0.071|            -0.921|            -1.868|             0.197|            -4.992|            -0.039|           0.015|           0.800|           0.563|          -0.578|
-| n\_pfoa         |       26.581|         -0.234|    0.886|  0.073|            -0.836|            -1.934|             0.172|            -4.935|            -0.081|           0.051|           0.806|           0.669|          -0.441|
-| n\_pfos         |       26.481|         -0.067|    0.821|  0.076|            -0.832|            -1.931|             0.336|            -4.683|            -0.042|          -0.049|           0.670|           0.495|          -0.675|
-| pfdea           |       26.526|         -0.850|    0.964|  0.071|            -0.891|            -1.991|             0.191|            -4.720|            -0.072|          -0.048|           0.685|           0.525|          -0.612|
-| pfdoa           |       26.887|         -6.531|    0.965|  0.069|            -0.907|            -2.027|             0.113|            -5.042|            -0.117|           0.001|           0.744|           0.605|          -0.523|
-| pfhxs           |       26.513|         -0.110|    0.890|  0.071|            -0.895|            -1.985|             0.134|            -5.075|            -0.109|          -0.006|           0.744|           0.625|          -0.512|
-| pfna            |       26.579|         -0.463|    0.919|  0.073|            -0.848|            -2.020|             0.157|            -4.896|            -0.113|           0.009|           0.766|           0.622|          -0.517|
-| pfua            |       26.570|         -2.162|    0.963|  0.071|            -0.845|            -1.944|             0.305|            -4.369|             0.022|          -0.039|           0.669|           0.494|          -0.652|
-| sb\_pfoa        |       26.704|         -4.033|    0.965|  0.069|            -0.882|            -2.035|             0.111|            -5.069|            -0.142|          -0.006|           0.751|           0.612|          -0.522|
-| sm\_pfos        |       26.454|         -0.178|    0.797|  0.076|            -0.875|            -1.944|             0.201|            -5.020|            -0.095|          -0.013|           0.744|           0.620|          -0.515|
+| chemical        |  estimate|  std.error|  p.value.x|  adj.r.squared|  statistic|     logLik|       AIC|       BIC|
+|:----------------|---------:|----------:|----------:|--------------:|----------:|----------:|---------:|---------:|
+| pfdea           |    -0.850|      0.377|      0.024|          0.103|     19.165|  -6325.497|  12679.00|  12756.73|
+| pfhxs           |    -0.110|      0.093|      0.239|          0.101|     18.821|  -6327.351|  12682.70|  12760.44|
+| me\_pfosa\_acoh |    -1.616|      0.569|      0.005|          0.104|     19.444|  -6323.994|  12675.99|  12753.73|
+| pfna            |    -0.463|      0.245|      0.058|          0.102|     19.026|  -6326.246|  12680.49|  12758.23|
+| pfua            |    -2.162|      0.654|      0.001|          0.105|     19.710|  -6322.563|  12673.13|  12750.86|
+| pfdoa           |    -6.531|     11.482|      0.570|          0.100|     18.722|  -6327.888|  12683.77|  12761.51|
+| n\_pfoa         |    -0.234|      0.101|      0.021|          0.103|     19.188|  -6325.375|  12678.75|  12756.49|
+| sb\_pfoa        |    -4.033|      7.569|      0.594|          0.100|     18.718|  -6327.907|  12683.82|  12761.55|
+| n\_pfos         |    -0.067|      0.025|      0.007|          0.104|     19.377|  -6324.356|  12676.71|  12754.45|
+| sm\_pfos        |    -0.178|      0.099|      0.074|          0.102|     18.989|  -6326.445|  12680.89|  12758.63|
+
+Linear predicted values plots
 
 ``` r
 nest_lm_pfas %>% 
@@ -158,275 +180,75 @@ nest_lm_pfas %>%
     theme_bw()
 ```
 
-![](rnhanes_nonlinear_final_files/figure-markdown_github/linear_map-1.png)
-
-Natural Spline Term
--------------------
-
-### glm natural spline
-
-``` r
-ns_pfoa <- lm(bmi ~ ns(n_pfoa, df = 3) + gender + age + race_ethnicity + hh_education, data = pfas)
-
-summary(ns_pfoa)
-```
-
-    ## 
-    ## Call:
-    ## lm(formula = bmi ~ ns(n_pfoa, df = 3) + gender + age + race_ethnicity + 
-    ##     hh_education, data = pfas)
-    ## 
-    ## Residuals:
-    ##     Min      1Q  Median      3Q     Max 
-    ## -16.987  -4.605  -0.935   3.580  33.298 
-    ## 
-    ## Coefficients:
-    ##                       Estimate Std. Error t value Pr(>|t|)    
-    ## (Intercept)         27.6657195  0.8996435  30.752  < 2e-16 ***
-    ## ns(n_pfoa, df = 3)1 -2.3997380  1.4423334  -1.664 0.096320 .  
-    ## ns(n_pfoa, df = 3)2 -4.5840414  2.0464211  -2.240 0.025205 *  
-    ## ns(n_pfoa, df = 3)3 -2.3645472  3.2981810  -0.717 0.473509    
-    ## gender2              0.7165244  0.3207565   2.234 0.025609 *  
-    ## age                  0.0754276  0.0080096   9.417  < 2e-16 ***
-    ## race_ethnicity2     -0.7638053  0.5707065  -1.338 0.180943    
-    ## race_ethnicity3     -1.8602982  0.4915444  -3.785 0.000159 ***
-    ## race_ethnicity4      0.1821660  0.5123589   0.356 0.722222    
-    ## race_ethnicity6     -4.8916615  0.6203941  -7.885 5.28e-15 ***
-    ## race_ethnicity7      0.0009633  0.8434180   0.001 0.999089    
-    ## hh_education2        0.0754323  0.6536177   0.115 0.908135    
-    ## hh_education3        0.8425046  0.5972907   1.411 0.158544    
-    ## hh_education4        0.7176630  0.5765140   1.245 0.213348    
-    ## hh_education5       -0.3481321  0.6042465  -0.576 0.564587    
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-    ## 
-    ## Residual standard error: 6.703 on 1891 degrees of freedom
-    ## Multiple R-squared:  0.1105, Adjusted R-squared:  0.1039 
-    ## F-statistic: 16.78 on 14 and 1891 DF,  p-value: < 2.2e-16
-
-``` r
-AIC(ns_pfoa)
-```
-
-    ## [1] 12678.37
-
-``` r
-ns_pfoa %>% 
-  broom::tidy() %>% 
-  select(-statistic) %>% 
-  knitr::kable(digits = 3)
-```
-
-| term                 |  estimate|  std.error|  p.value|
-|:---------------------|---------:|----------:|--------:|
-| (Intercept)          |    27.666|      0.900|    0.000|
-| ns(n\_pfoa, df = 3)1 |    -2.400|      1.442|    0.096|
-| ns(n\_pfoa, df = 3)2 |    -4.584|      2.046|    0.025|
-| ns(n\_pfoa, df = 3)3 |    -2.365|      3.298|    0.474|
-| gender2              |     0.717|      0.321|    0.026|
-| age                  |     0.075|      0.008|    0.000|
-| race\_ethnicity2     |    -0.764|      0.571|    0.181|
-| race\_ethnicity3     |    -1.860|      0.492|    0.000|
-| race\_ethnicity4     |     0.182|      0.512|    0.722|
-| race\_ethnicity6     |    -4.892|      0.620|    0.000|
-| race\_ethnicity7     |     0.001|      0.843|    0.999|
-| hh\_education2       |     0.075|      0.654|    0.908|
-| hh\_education3       |     0.843|      0.597|    0.159|
-| hh\_education4       |     0.718|      0.577|    0.213|
-| hh\_education5       |    -0.348|      0.604|    0.565|
-
-``` r
-plot(ns_pfoa)
-```
-
-![](rnhanes_nonlinear_final_files/figure-markdown_github/pfoa_natural_spline-1.png)![](rnhanes_nonlinear_final_files/figure-markdown_github/pfoa_natural_spline-2.png)![](rnhanes_nonlinear_final_files/figure-markdown_github/pfoa_natural_spline-3.png)![](rnhanes_nonlinear_final_files/figure-markdown_github/pfoa_natural_spline-4.png)
-
-``` r
-ns_pfoa %>% 
- predict(., se.fit = TRUE, type = "terms" ) %>% 
- as.data.frame(.) %>% 
-  mutate(pred = fit.ns.n_pfoa..df...3.,
-         se = se.fit.ns.n_pfoa..df...3.,
-         lci = pred - 1.96*se,
-         uci = pred + 1.96*se) %>%
-  select(pred, se, lci, uci) %>% 
-  bind_cols(pfas) %>% 
-  mutate(pred_bmi = pred + mean(bmi),
-         lci_bmi = lci + mean(bmi),
-         uci_bmi = uci + mean(bmi)) %>% 
-  ggplot(., aes(n_pfoa)) + 
-      geom_line(aes(y = pred_bmi)) + 
-      geom_line(aes(y = lci_bmi), color = "darkgrey") + 
-      geom_line(aes(y = uci_bmi), color = "darkgrey") + 
-      xlab("n_pfoa") + 
-      ylab("Predicted BMI (95% CI)") +
-      ylim(20,35)
-```
-
-![](rnhanes_nonlinear_final_files/figure-markdown_github/pfoa_natural_spline-5.png)
-
-### gam natural spline
-
-``` r
-pfoa_gam_ns <- gam(bmi ~ ns(n_pfoa, df = 3) + gender + age + race_ethnicity + hh_education, data = pfas)
-
-
-summary(pfoa_gam_ns)
-```
-
-    ## 
-    ## Family: gaussian 
-    ## Link function: identity 
-    ## 
-    ## Formula:
-    ## bmi ~ ns(n_pfoa, df = 3) + gender + age + race_ethnicity + hh_education
-    ## 
-    ## Parametric coefficients:
-    ##                       Estimate Std. Error t value Pr(>|t|)    
-    ## (Intercept)         27.6657195  0.8996435  30.752  < 2e-16 ***
-    ## ns(n_pfoa, df = 3)1 -2.3997380  1.4423334  -1.664 0.096320 .  
-    ## ns(n_pfoa, df = 3)2 -4.5840414  2.0464211  -2.240 0.025205 *  
-    ## ns(n_pfoa, df = 3)3 -2.3645472  3.2981810  -0.717 0.473509    
-    ## gender2              0.7165244  0.3207565   2.234 0.025609 *  
-    ## age                  0.0754276  0.0080096   9.417  < 2e-16 ***
-    ## race_ethnicity2     -0.7638053  0.5707065  -1.338 0.180943    
-    ## race_ethnicity3     -1.8602982  0.4915444  -3.785 0.000159 ***
-    ## race_ethnicity4      0.1821660  0.5123589   0.356 0.722222    
-    ## race_ethnicity6     -4.8916615  0.6203941  -7.885 5.28e-15 ***
-    ## race_ethnicity7      0.0009633  0.8434180   0.001 0.999089    
-    ## hh_education2        0.0754323  0.6536177   0.115 0.908135    
-    ## hh_education3        0.8425046  0.5972907   1.411 0.158544    
-    ## hh_education4        0.7176630  0.5765140   1.245 0.213348    
-    ## hh_education5       -0.3481321  0.6042465  -0.576 0.564587    
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-    ## 
-    ## 
-    ## R-sq.(adj) =  0.104   Deviance explained =   11%
-    ## GCV = 45.284  Scale est. = 44.928    n = 1906
-
-``` r
-pfoa_gam_ns %>% 
- predict(., se.fit = TRUE, type = "terms" ) %>% 
- as.data.frame(.) %>% 
-  mutate(pred = fit.ns.n_pfoa..df...3.,
-         se = se.fit.ns.n_pfoa..df...3.,
-         lci = pred - 1.96*se,
-         uci = pred + 1.96*se) %>%
-  select(pred, se, lci, uci) %>% 
-  bind_cols(pfas) %>% 
-  mutate(pred_bmi = pred + mean(bmi),
-         lci_bmi = lci + mean(bmi),
-         uci_bmi = uci + mean(bmi)) %>% 
-  ggplot(., aes(n_pfoa)) + 
-      geom_line(aes(y = pred_bmi)) + 
-      geom_line(aes(y = lci_bmi), color = "darkgrey") + 
-      geom_line(aes(y = uci_bmi), color = "darkgrey") + 
-      xlab("n_pfoa") + 
-      ylab("Predicted BMI (95% CI)") +
-      ylim(20,35)
-```
-
-    ## Warning: Removed 1 rows containing missing values (geom_path).
-
-![](rnhanes_nonlinear_final_files/figure-markdown_github/gam_ns-1.png) \`\`\`
+![](rnhanes_nonlinear_final_files/figure-markdown_github/lm_plot-1.png)
 
 Penalized spline
 ----------------
 
 ``` r
-ps_pfoa <- gam(bmi ~ s(n_pfoa) + gender + age + race_ethnicity + hh_education, data = pfas)
-
-summary(ps_pfoa)
+nest_ps_pfas <-
+  pfas %>%
+  select(-pfdoa, -sb_pfoa) %>% 
+  gather(pfdea:sm_pfos, key = "chemical", value = "concentration") %>% 
+  group_by(chemical) %>% 
+  nest() %>% 
+  mutate(models = map(data, ~gam(bmi ~ s(concentration) + gender + age + race_ethnicity + hh_education, data = .x)),
+         pred  = map2(data, models, modelr::add_predictions),
+         resids = map2(data, models, add_residuals))
 ```
 
-    ## 
-    ## Family: gaussian 
-    ## Link function: identity 
-    ## 
-    ## Formula:
-    ## bmi ~ s(n_pfoa) + gender + age + race_ethnicity + hh_education
-    ## 
-    ## Parametric coefficients:
-    ##                  Estimate Std. Error t value Pr(>|t|)    
-    ## (Intercept)     26.047159   0.658094  39.580  < 2e-16 ***
-    ## gender2          0.717857   0.321951   2.230 0.025884 *  
-    ## age              0.075392   0.008031   9.388  < 2e-16 ***
-    ## race_ethnicity2 -0.752974   0.570807  -1.319 0.187282    
-    ## race_ethnicity3 -1.852048   0.491909  -3.765 0.000172 ***
-    ## race_ethnicity4  0.165183   0.512128   0.323 0.747078    
-    ## race_ethnicity6 -4.855277   0.620356  -7.827 8.28e-15 ***
-    ## race_ethnicity7 -0.004687   0.842761  -0.006 0.995563    
-    ## hh_education2    0.081049   0.653014   0.124 0.901237    
-    ## hh_education3    0.838389   0.596724   1.405 0.160190    
-    ## hh_education4    0.693453   0.576004   1.204 0.228778    
-    ## hh_education5   -0.369698   0.603720  -0.612 0.540369    
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-    ## 
-    ## Approximate significance of smooth terms:
-    ##             edf Ref.df     F p-value  
-    ## s(n_pfoa) 6.093  7.099 2.113  0.0367 *
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-    ## 
-    ## R-sq.(adj) =  0.106   Deviance explained = 11.4%
-    ## GCV = 45.233  Scale est. = 44.804    n = 1906
+GAM penalized spline PFAS estimated degrees of freedom and model summary statistics
 
 ``` r
-ps_pfoa$sp   # extract Penalty 
+ps_edfs <-
+  nest_ps_pfas %>% 
+    mutate(models = map(models, broom::tidy)) %>% 
+    select(-data, -pred, -resids) %>% 
+    unnest() %>%  
+    select(-term)
+
+ps_summary <-
+  nest_ps_pfas %>% 
+    mutate(models = map(models, broom::glance)) %>% 
+    select(-data, -pred, -resids) %>% 
+    unnest() 
+
+ps_edfs %>% 
+  left_join(ps_summary, by = "chemical") %>% 
+  select(-df, -deviance, -df.residual) %>%  
+    knitr::kable(digits = 3)
 ```
 
-    ##  s(n_pfoa) 
-    ## 0.02025201
+| chemical        |    edf|  ref.df|  statistic|  p.value|     logLik|       AIC|       BIC|
+|:----------------|------:|-------:|----------:|--------:|----------:|---------:|---------:|
+| pfdea           |  2.806|   3.462|      2.039|    0.084|  -6323.605|  12678.82|  12766.59|
+| pfhxs           |  4.056|   4.950|      1.224|    0.322|  -6324.089|  12682.29|  12777.00|
+| me\_pfosa\_acoh |  4.450|   5.360|      2.410|    0.029|  -6320.172|  12675.25|  12772.14|
+| pfna            |  1.000|   1.000|      3.587|    0.058|  -6326.246|  12680.49|  12758.23|
+| pfua            |  2.842|   3.511|      4.873|    0.001|  -6318.450|  12668.58|  12756.55|
+| n\_pfoa         |  6.093|   7.099|      2.113|    0.037|  -6318.994|  12676.17|  12782.19|
+| n\_pfos         |  7.814|   8.571|      2.619|    0.006|  -6315.370|  12672.37|  12787.95|
+| sm\_pfos        |  1.000|   1.000|      3.192|    0.074|  -6326.445|  12680.89|  12758.63|
+
+Penalized spline predicted values plots
 
 ``` r
-plot(ps_pfoa)
+nest_ps_pfas %>% 
+  unnest(pred) %>% 
+    ggplot(aes(concentration, pred)) +
+      geom_point(size = 0.5) +
+    geom_smooth() +
+    facet_wrap(~chemical) +
+    scale_x_log10() +
+    theme_bw()
 ```
 
-![](rnhanes_nonlinear_final_files/figure-markdown_github/ps_pfoa-1.png)
+    ## `geom_smooth()` using method = 'gam' and formula 'y ~ s(x, bs = "cs")'
 
-``` r
-ps_pfoa %>% 
-  broom::tidy() %>% 
-  select(-statistic) %>% 
-  knitr::kable(digits = 3)
-```
+![](rnhanes_nonlinear_final_files/figure-markdown_github/ps_plot-1.png)
 
-| term       |    edf|  ref.df|  p.value|
-|:-----------|------:|-------:|--------:|
-| s(n\_pfoa) |  6.093|   7.099|    0.037|
-
-``` r
-ps_pfoa %>% 
- predict(., se.fit = TRUE, type = "terms" ) %>% 
- as.data.frame(.) %>% 
-  mutate(pred = fit.s.n_pfoa.,
-         se = se.fit.s.n_pfoa.,
-         lci = pred - 1.96*se,
-         uci = pred + 1.96*se) %>%
-  select(pred, se, lci, uci) %>% 
-  bind_cols(pfas) %>% 
-  mutate(pred_bmi = pred + mean(bmi),
-         lci_bmi = lci + mean(bmi),
-         uci_bmi = uci + mean(bmi)) %>% 
-  ggplot(., aes(n_pfoa)) + 
-      geom_line(aes(y = pred_bmi)) + 
-      geom_line(aes(y = lci_bmi), color = "darkgrey") + 
-      geom_line(aes(y = uci_bmi), color = "darkgrey") + 
-      xlab("n_pfoa") + 
-      ylab("Predicted BMI (95% CI)") +
-      ylim(20,35)
-```
-
-    ## Warning: Removed 1 rows containing missing values (geom_path).
-
-    ## Warning: Removed 2 rows containing missing values (geom_path).
-
-![](rnhanes_nonlinear_final_files/figure-markdown_github/ps_pfoa-2.png)
-
-PCA Loading Models
-------------------
+PCA Model
+---------
 
 ``` r
 pca_scores <- read.csv("pca_scores.csv")
@@ -436,7 +258,6 @@ pfas_pca <-
   
 ps_pfas_pca <-
   gam(bmi ~ s(PC1) + s(PC2) + s(PC3) + gender + age + race_ethnicity + hh_education, data = pfas_pca)
-
 
 summary(ps_pfas_pca)
 ```
@@ -478,19 +299,6 @@ summary(ps_pfas_pca)
     ## GCV =  45.04  Scale est. = 44.529    n = 1906
 
 ``` r
-ps_pfas_pca$sp   # extract Penalty 
-```
-
-    ##       s(PC1)       s(PC2)       s(PC3) 
-    ## 8.215298e-02 6.473024e-01 4.095268e+08
-
-``` r
-plot(ps_pfas_pca)
-```
-
-![](rnhanes_nonlinear_final_files/figure-markdown_github/unnamed-chunk-4-1.png)![](rnhanes_nonlinear_final_files/figure-markdown_github/unnamed-chunk-4-2.png)![](rnhanes_nonlinear_final_files/figure-markdown_github/unnamed-chunk-4-3.png)
-
-``` r
 ps_pfas_pca %>% 
   broom::tidy() %>% 
   select(-statistic) %>% 
@@ -504,42 +312,27 @@ ps_pfas_pca %>%
 | s(PC3) |  1.000|   1.000|    0.032|
 
 ``` r
-ps_pfoa %>% 
- predict(., se.fit = TRUE, type = "terms" ) %>% 
- as.data.frame(.) %>% 
-  mutate(pred = fit.s.n_pfoa.,
-         se = se.fit.s.n_pfoa.,
-         lci = pred - 1.96*se,
-         uci = pred + 1.96*se) %>%
-  select(pred, se, lci, uci) %>% 
-  bind_cols(pfas) %>% 
-  mutate(pred_bmi = pred + mean(bmi),
-         lci_bmi = lci + mean(bmi),
-         uci_bmi = uci + mean(bmi)) %>% 
-  ggplot(., aes(n_pfoa)) + 
-      geom_line(aes(y = pred_bmi)) + 
-      geom_line(aes(y = lci_bmi), color = "darkgrey") + 
-      geom_line(aes(y = uci_bmi), color = "darkgrey") + 
-      xlab("n_pfoa") + 
-      ylab("Predicted BMI (95% CI)") +
-      ylim(20,35)
+ps_pfas_pca %>% 
+  broom::glance() %>% 
+  knitr::kable(digits = 3)
 ```
 
-    ## Warning: Removed 1 rows containing missing values (geom_path).
+|      df|     logLik|       AIC|       BIC|  deviance|  df.residual|
+|-------:|----------:|---------:|---------:|---------:|------------:|
+|  21.618|  -6311.352|  12667.94|  12793.53|  83909.97|     1884.382|
 
-    ## Warning: Removed 2 rows containing missing values (geom_path).
-
-![](rnhanes_nonlinear_final_files/figure-markdown_github/unnamed-chunk-4-4.png)
-
-Compare Models
---------------
+Plot of PCA penalized splines with observed BMI points
 
 ``` r
-broom::glance(pfoa_linear) %>% 
-  bind_rows(broom::glance(ns_pfoa)) %>% 
-  bind_rows(broom::glance(ps_pfoa)) %>% 
-  bind_rows(broom::glance(ps_pfas_pca)) %>% 
-  mutate(model = c("pfoa_linear", "pfoa_ns", "pfoa_ps", "pca3_ps")) %>% 
-  select(model, everything()) %>% 
-  knitr::kable()
+pca_vars <- c("PC1", "PC2", "PC3")
+
+map(pca_vars, function(x){
+  p <- voxel::plotGAM(ps_pfas_pca, smooth.cov = x) +
+    geom_point(data = pfas_pca, aes_string(y = "bmi", x = x ), alpha = 0.2, size = 0.5) +
+    geom_rug(data = pfas_pca, aes_string(y = "bmi", x = x ), alpha = 0.2)
+  g <- ggplotGrob(p) 
+  }) %>%
+  {grid.arrange(grobs = (.), ncol = 3, nrow = 1)} 
 ```
+
+![](rnhanes_nonlinear_final_files/figure-markdown_github/pca_plot-1.png)
