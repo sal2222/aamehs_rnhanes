@@ -1,0 +1,303 @@
+---
+title: "rnhanes_nonlinear_final"
+author: "SL"
+date: "April 17, 2019"
+output: 
+  github_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(mgcv)
+library(splines)
+library(ggcorrplot)
+library(corrplot)
+library(modelr)
+
+```
+
+Load dataset from pipeline output
+```{r load}
+pfas <- read.csv("aamehs_data.csv") %>% 
+   select(seqn, gender, age, race_ethnicity, hh_education, pfdea, pfhxs, me_pfosa_acoh, pfna, pfua, pfdoa, n_pfoa, sb_pfoa, n_pfos, sm_pfos, bmi) %>% 
+  mutate(gender = factor(gender),
+         race_ethnicity = factor(race_ethnicity),
+         hh_education = factor(hh_education)) %>% 
+  drop_na()
+
+
+```
+
+
+## Tables
+```{r, warning = FALSE}
+
+pfas %>% 
+  select(gender, age, race_ethnicity, hh_education, bmi, everything(), -seqn) %>% 
+  summary(.) 
+
+```
+
+
+## Plots
+```{r}
+pfas %>%
+    select(bmi, pfdea:sm_pfos) %>%
+    gather(pfdea:sm_pfos, key = "variable", value = "value") %>% 
+  ggplot(aes(value, bmi)) +
+      geom_point(size = 0.5) +
+    geom_smooth() +
+    facet_wrap(~variable) +
+    theme_bw()
+
+```
+
+## Correlations
+
+```{r}
+cor_pfas <-
+  pfas %>% 
+    select(-bmi, -(seqn:hh_education)) %>% 
+    scale() %>% 
+    cor()
+  
+
+
+cor_pfas %>%
+  corrplot::corrplot(., type = "upper",  method = "ellipse",
+                        tl.col = "black", tl.srt = 90, tl.cex = 0.7,
+                        addCoef.col = "black", number.cex = 0.7)
+
+
+
+```
+
+
+
+## Linear
+
+
+
+### Linear model
+```{r linear_map}
+
+nest_lm_pfas <-
+  pfas %>%
+  gather(pfdea:sm_pfos, key = "chemical", value = "concentration") %>% 
+  group_by(chemical) %>% 
+  nest() %>% 
+  mutate(models = map(data, ~lm(bmi ~ concentration + gender + age + race_ethnicity + hh_education, data = .x)),
+         pred  = map2(data, models, modelr::add_predictions),
+         resids = map2(data, models, add_residuals))
+
+
+nest_lm_pfas %>% 
+  mutate(models = map(models, broom::tidy)) %>% 
+  select(-data, -pred, -resids) %>% 
+  unnest() %>%  
+  select(chemical, term, estimate) %>% 
+  mutate(term = fct_inorder(term)) %>% 
+  spread(key = term, value = estimate) %>% 
+  knitr::kable(digits = 3)
+
+nest_lm_pfas %>% 
+  unnest(pred) %>% 
+    ggplot(aes(concentration, pred)) +
+      geom_point(size = 0.5) +
+    geom_smooth(method = lm) +
+    facet_wrap(~chemical) +
+    scale_x_log10() +
+    theme_bw()
+
+
+
+```
+
+
+## Natural Spline Term 
+
+### glm natural spline
+```{r pfoa_natural_spline}
+
+ns_pfoa <- lm(bmi ~ ns(n_pfoa, df = 3) + gender + age + race_ethnicity + hh_education, data = pfas)
+
+summary(ns_pfoa)
+AIC(ns_pfoa)
+
+ns_pfoa %>% 
+  broom::tidy() %>% 
+  select(-statistic) %>% 
+  knitr::kable(digits = 3)
+
+
+plot(ns_pfoa)
+
+ns_pfoa %>% 
+ predict(., se.fit = TRUE, type = "terms" ) %>% 
+ as.data.frame(.) %>% 
+  mutate(pred = fit.ns.n_pfoa..df...3.,
+         se = se.fit.ns.n_pfoa..df...3.,
+         lci = pred - 1.96*se,
+         uci = pred + 1.96*se) %>%
+  select(pred, se, lci, uci) %>% 
+  bind_cols(pfas) %>% 
+  mutate(pred_bmi = pred + mean(bmi),
+         lci_bmi = lci + mean(bmi),
+         uci_bmi = uci + mean(bmi)) %>% 
+  ggplot(., aes(n_pfoa)) + 
+      geom_line(aes(y = pred_bmi)) + 
+      geom_line(aes(y = lci_bmi), color = "darkgrey") + 
+      geom_line(aes(y = uci_bmi), color = "darkgrey") + 
+      xlab("n_pfoa") + 
+      ylab("Predicted BMI (95% CI)") +
+      ylim(20,35)
+
+
+```
+
+
+### gam natural spline
+
+
+
+```{r gam_ns}
+pfoa_gam_ns <- gam(bmi ~ ns(n_pfoa, df = 3) + gender + age + race_ethnicity + hh_education, data = pfas)
+
+
+summary(pfoa_gam_ns)
+
+pfoa_gam_ns %>% 
+ predict(., se.fit = TRUE, type = "terms" ) %>% 
+ as.data.frame(.) %>% 
+  mutate(pred = fit.ns.n_pfoa..df...3.,
+         se = se.fit.ns.n_pfoa..df...3.,
+         lci = pred - 1.96*se,
+         uci = pred + 1.96*se) %>%
+  select(pred, se, lci, uci) %>% 
+  bind_cols(pfas) %>% 
+  mutate(pred_bmi = pred + mean(bmi),
+         lci_bmi = lci + mean(bmi),
+         uci_bmi = uci + mean(bmi)) %>% 
+  ggplot(., aes(n_pfoa)) + 
+      geom_line(aes(y = pred_bmi)) + 
+      geom_line(aes(y = lci_bmi), color = "darkgrey") + 
+      geom_line(aes(y = uci_bmi), color = "darkgrey") + 
+      xlab("n_pfoa") + 
+      ylab("Predicted BMI (95% CI)") +
+      ylim(20,35)
+
+
+
+
+```
+```
+
+
+## Penalized spline
+
+```{r ps_pfoa}
+ps_pfoa <- gam(bmi ~ s(n_pfoa) + gender + age + race_ethnicity + hh_education, data = pfas)
+
+summary(ps_pfoa)
+ps_pfoa$sp   # extract Penalty 
+plot(ps_pfoa)
+
+ps_pfoa %>% 
+  broom::tidy() %>% 
+  select(-statistic) %>% 
+  knitr::kable(digits = 3)
+
+
+
+ps_pfoa %>% 
+ predict(., se.fit = TRUE, type = "terms" ) %>% 
+ as.data.frame(.) %>% 
+  mutate(pred = fit.s.n_pfoa.,
+         se = se.fit.s.n_pfoa.,
+         lci = pred - 1.96*se,
+         uci = pred + 1.96*se) %>%
+  select(pred, se, lci, uci) %>% 
+  bind_cols(pfas) %>% 
+  mutate(pred_bmi = pred + mean(bmi),
+         lci_bmi = lci + mean(bmi),
+         uci_bmi = uci + mean(bmi)) %>% 
+  ggplot(., aes(n_pfoa)) + 
+      geom_line(aes(y = pred_bmi)) + 
+      geom_line(aes(y = lci_bmi), color = "darkgrey") + 
+      geom_line(aes(y = uci_bmi), color = "darkgrey") + 
+      xlab("n_pfoa") + 
+      ylab("Predicted BMI (95% CI)") +
+      ylim(20,35)
+
+
+
+
+
+
+
+```
+
+
+## PCA Loading Models
+
+
+```{r}
+pca_scores <- read.csv("pca_scores.csv")
+
+pfas_pca <-
+  left_join(pfas, pca_scores, by = "seqn") 
+  
+ps_pfas_pca <-
+  gam(bmi ~ s(PC1) + s(PC2) + s(PC3) + gender + age + race_ethnicity + hh_education, data = pfas_pca)
+
+
+summary(ps_pfas_pca)
+ps_pfas_pca$sp   # extract Penalty 
+plot(ps_pfas_pca)
+
+ps_pfas_pca %>% 
+  broom::tidy() %>% 
+  select(-statistic) %>% 
+  knitr::kable(digits = 3)
+
+
+
+ps_pfoa %>% 
+ predict(., se.fit = TRUE, type = "terms" ) %>% 
+ as.data.frame(.) %>% 
+  mutate(pred = fit.s.n_pfoa.,
+         se = se.fit.s.n_pfoa.,
+         lci = pred - 1.96*se,
+         uci = pred + 1.96*se) %>%
+  select(pred, se, lci, uci) %>% 
+  bind_cols(pfas) %>% 
+  mutate(pred_bmi = pred + mean(bmi),
+         lci_bmi = lci + mean(bmi),
+         uci_bmi = uci + mean(bmi)) %>% 
+  ggplot(., aes(n_pfoa)) + 
+      geom_line(aes(y = pred_bmi)) + 
+      geom_line(aes(y = lci_bmi), color = "darkgrey") + 
+      geom_line(aes(y = uci_bmi), color = "darkgrey") + 
+      xlab("n_pfoa") + 
+      ylab("Predicted BMI (95% CI)") +
+      ylim(20,35)
+```
+
+
+## Compare Models
+
+```{r compare_models, eval = FALSE}
+
+broom::glance(pfoa_linear) %>% 
+  bind_rows(broom::glance(ns_pfoa)) %>% 
+  bind_rows(broom::glance(ps_pfoa)) %>% 
+  bind_rows(broom::glance(ps_pfas_pca)) %>% 
+  mutate(model = c("pfoa_linear", "pfoa_ns", "pfoa_ps", "pca3_ps")) %>% 
+  select(model, everything()) %>% 
+  knitr::kable()
+              
+            
+```
+
