@@ -88,7 +88,7 @@ figure_1a <- loadings.long %>% filter(PC == "PC1"|PC == "PC2"|PC == "PC3") %>%
 
 figure_1a
 
-tinyProject::prSave(figure_1a, replace = TRUE, desc = "PC1-3 Loadings", subdir = "./figs_tables_final_paper")
+save(figure_1a, file = "./figs_tables_final_paper/figure_1a.RData")
 
 ```
 
