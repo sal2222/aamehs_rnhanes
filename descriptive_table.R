@@ -78,3 +78,68 @@ aamehs_data %>%
   dplyr::summarise(mean = mean(bmi),
                    sd = sd(bmi))
 
+# PFOA
+aamehs_data %>% 
+  summarise(median = median(n_pfoa),
+            IQR = IQR(n_pfoa))
+
+# PFOA Crosstabs
+aamehs_data %>% 
+  mutate(gender = as.factor(gender)) %>% 
+  dplyr::group_by(gender) %>% 
+  dplyr::summarise(median = median(n_pfoa),
+                   IQR = IQR(n_pfoa))
+
+aamehs_data %>% 
+  mutate(age_cat = case_when(
+    aamehs_data$age <20  ~ "12-19",
+    aamehs_data$age >=20 ~ "20+"
+  )) %>% 
+  dplyr::group_by(age_cat) %>% 
+  dplyr::summarise(median = median(n_pfoa),
+                   IQR = IQR(n_pfoa))
+
+aamehs_data %>% 
+  mutate(race_ethnicity = as.factor(race_ethnicity)) %>% 
+  dplyr::group_by(race_ethnicity) %>% 
+  dplyr::summarise(median = median(n_pfoa),
+                   IQR = IQR(n_pfoa))
+
+aamehs_data %>% 
+  mutate(hh_education = as.factor(hh_education)) %>% 
+  dplyr::group_by(hh_education) %>% 
+  dplyr::summarise(median = median(n_pfoa),
+                   IQR = IQR(n_pfoa))
+
+# PFOS
+aamehs_data %>% 
+  summarise(median = median(n_pfos),
+            IQR = IQR(n_pfos))
+
+# PFOS Crosstabs
+aamehs_data %>% 
+  mutate(gender = as.factor(gender)) %>% 
+  dplyr::group_by(gender) %>% 
+  dplyr::summarise(median = median(n_pfos),
+                   IQR = IQR(n_pfos))
+
+aamehs_data %>% 
+  mutate(age_cat = case_when(
+    aamehs_data$age <20  ~ "12-19",
+    aamehs_data$age >=20 ~ "20+"
+  )) %>% 
+  dplyr::group_by(age_cat) %>% 
+  dplyr::summarise(median = median(n_pfos),
+                   IQR = IQR(n_pfos))
+
+aamehs_data %>% 
+  mutate(race_ethnicity = as.factor(race_ethnicity)) %>% 
+  dplyr::group_by(race_ethnicity) %>% 
+  dplyr::summarise(median = median(n_pfos),
+                   IQR = IQR(n_pfos))
+
+aamehs_data %>% 
+  mutate(hh_education = as.factor(hh_education)) %>% 
+  dplyr::group_by(hh_education) %>% 
+  dplyr::summarise(median = median(n_pfos),
+                   IQR = IQR(n_pfos))
