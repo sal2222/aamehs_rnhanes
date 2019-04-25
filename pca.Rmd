@@ -74,6 +74,22 @@ ggplot(loadings.long, aes(x = Constituent, y = Loading)) +
        y = "Loadings") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
+# Visualize Loadings for PC1-3 only
+figure_1a <- loadings.long %>% filter(PC == "PC1"|PC == "PC2"|PC == "PC3") %>% 
+  ggplot(aes(x = Constituent, y = Loading)) + 
+  geom_col() +                             # creates a column for each loading
+  geom_hline(yintercept = 0, size = 0.2) + # creates a line at 0
+  facet_wrap(~ PC) +                       # creates a distinct box for each PC 
+  theme_bw() +                             # sets theme options
+  theme(strip.background = element_rect(fill = "white")) +
+  labs(x = expression("PFOS Constituents"),
+       y = "Loadings") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+figure_1a
+
+tinyProject::prSave(figure_1a, replace = TRUE, desc = "PC1-3 Loadings", subdir = "./figs_tables_final_paper")
+
 ```
 
 
