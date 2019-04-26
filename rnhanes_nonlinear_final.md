@@ -10,7 +10,8 @@ April 17, 2019
     -   [PFAS beta coefficient estimate and model summary statistics](#pfas-beta-coefficient-estimate-and-model-summary-statistics)
     -   [Linear predicted values plots](#linear-predicted-values-plots)
 -   [Penalized spline GAMs](#penalized-spline-gams)
--   [PCA Model](#pca-model)
+-   [Penalized spline predicted values plots](#penalized-spline-predicted-values-plots)
+    -   [PCA Model](#pca-model)
 
 Load dataset from pipeline output
 
@@ -97,10 +98,15 @@ GAM penalized spline PFAS estimated degrees of freedom and model summary statist
 | sm\_pfos        |  1.000|   1.000|      3.192|    0.074|  -6326.445|  12680.89|  12758.63|
 
 Penalized spline predicted values plots
+=======================================
 
     ## `geom_smooth()` using method = 'gam' and formula 'y ~ s(x, bs = "cs")'
 
 ![](rnhanes_nonlinear_final_files/figure-markdown_github/ps_plot-1.png)
+
+    ## Saving 7 x 5 in image
+
+    ## `geom_smooth()` using method = 'loess' and formula 'y ~ x'
 
 PCA Model
 ---------
@@ -151,4 +157,32 @@ PCA Model
 |-------:|----------:|---------:|---------:|---------:|------------:|
 |  21.618|  -6311.352|  12667.94|  12793.53|  83909.97|     1884.382|
 
-Plot of PCA penalized splines with observed BMI points ![](rnhanes_nonlinear_final_files/figure-markdown_github/pca_plot-1.png)
+Plot of PCA penalized splines with observed BMI points ![](rnhanes_nonlinear_final_files/figure-markdown_github/pca_plot-1.png)![](rnhanes_nonlinear_final_files/figure-markdown_github/pca_plot-2.png)
+
+PLots for paper
+
+PCA patchwork
+
+    ## [1] "center"   "rotation" "scale"    "sdev"     "x"
+
+    ## Importance of components:
+    ##                           PC1    PC2    PC3     PC4     PC5     PC6
+    ## Standard deviation     1.9384 1.2337 1.0136 0.96411 0.91318 0.90040
+    ## Proportion of Variance 0.3757 0.1522 0.1027 0.09295 0.08339 0.08107
+    ## Cumulative Proportion  0.3757 0.5280 0.6307 0.72364 0.80703 0.88810
+    ##                            PC7     PC8     PC9    PC10
+    ## Standard deviation     0.69684 0.59369 0.38667 0.36253
+    ## Proportion of Variance 0.04856 0.03525 0.01495 0.01314
+    ## Cumulative Proportion  0.93666 0.97191 0.98686 1.00000
+
+![](rnhanes_nonlinear_final_files/figure-markdown_github/PCA-1.png)![](rnhanes_nonlinear_final_files/figure-markdown_github/PCA-2.png)
+
+![](rnhanes_nonlinear_final_files/figure-markdown_github/pca_patchwork-1.png)
+
+    ## TableGrob (1 x 3) "arrange": 3 grobs
+    ##   z     cells    name           grob
+    ## 1 1 (1-1,1-1) arrange gtable[layout]
+    ## 2 2 (1-1,2-2) arrange gtable[layout]
+    ## 3 3 (1-1,3-3) arrange gtable[layout]
+
+    ## Saving 10.5 x 7.5 in image

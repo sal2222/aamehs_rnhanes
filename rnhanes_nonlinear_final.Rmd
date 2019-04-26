@@ -183,7 +183,8 @@ ps_edfs %>%
 
 ```
 
-Penalized spline predicted values plots
+# Penalized spline predicted values plots
+
 ```{r ps_plot}
 
 nest_ps_pfas %>% 
@@ -194,6 +195,31 @@ nest_ps_pfas %>%
     facet_wrap(~chemical) +
     scale_x_log10() +
     theme_bw()
+
+
+gam_plot <-
+nest_ps_pfas %>%
+  mutate(chemical = recode(chemical, "n_pfoa" = "PFOA"),
+         chemical = recode(chemical, "n_pfos" = "PFOS")) %>% 
+    unnest(pred) %>% 
+   filter(chemical == c("PFOA", "PFOS")) %>%
+       ggplot(aes(concentration, pred)) +
+      geom_point(size = 0.5) +
+    geom_smooth() +
+    facet_wrap(~chemical) +
+    xlab("Serum Concentration (ng/mL)") +
+    ylab("Predicted BMI") +
+    theme_bw()
+
+
+ggsave("gam_plot.png", plot = gam_plot, scale = 1, dpi = 320)
+  
+  
+
+
+
+
+
 ```
 
 
@@ -239,5 +265,105 @@ map(pca_vars, function(x){
   g <- ggplotGrob(p) 
   }) %>%
   {grid.arrange(grobs = (.), ncol = 3, nrow = 1)} 
+
+
+pca_gam_plot <-
+map(pca_vars, function(x){
+  p <- voxel::plotGAM(ps_pfas_pca, smooth.cov = x) +
+    geom_point(data = pfas_pca, aes_string(y = "bmi", x = x ), alpha = 0.2, size = 0.5) +
+    geom_rug(data = pfas_pca, aes_string(y = "bmi", x = x ), alpha = 0.2)+
+    xlab("Principal Component") +
+    ylab("Predicted BMI") +
+    ggtitle("")
+
+  g <- ggplotGrob(p) 
+  }) %>%
+  {grid.arrange(grobs = (.), ncol = 3, nrow = 1)} 
+
+
 ```
+
+
+
+PLots for paper
+
+PCA patchwork
+
+
+```{r PCA, message=FALSE}
+
+aamehs_data <- read_csv("aamehs_data.csv")
+
+pca_data <- aamehs_data %>% 
+  select(pfdea, pfhxs, me_pfosa_acoh, pfna, pfua, pfdoa, n_pfoa, sb_pfoa, n_pfos, sm_pfos)
+library(psych)
+pca <- prcomp(pca_data, scale. = TRUE) 
+
+ls(pca)
+summary(pca)
+
+eigenvalues.v <- pca$sdev^2
+perc_variance.v <- eigenvalues.v/sum(eigenvalues.v)
+perc_variance.v <- round(100 * perc_variance.v, 1)
+cumulative_perc_var.v <- cumsum(perc_variance.v)
+eigenvalues.df <- data.frame(1:length(eigenvalues.v), eigenvalues.v, perc_variance.v, cumulative_perc_var.v)
+colnames(eigenvalues.df) <- c("Principal Component", "Eigenvalues", 
+                              "Proportion Var Explained", "Cumulative Proportion")
+# Scree Plot
+library(factoextra)
+fviz_eig(pca, main = "Percent Variance Explained \n by Principal Component",
+         xlab = "Principal component",
+         ylim = c(0,70)) 
+
+# Visualize Loadings
+loadings.df <- as.data.frame.matrix(pca$rotation) 
+loadings.df$Constituent <- row.names(loadings.df)
+loadings.long <- loadings.df %>% 
+  gather(key = "PC", value = "Loading", -Constituent) 
+
+ggplot(loadings.long, aes(x = Constituent, y = Loading)) + 
+  geom_col() +                             # creates a column for each loading
+  geom_hline(yintercept = 0, size = 0.2) + # creates a line at 0
+  facet_wrap(~ PC) +                       # creates a distinct box for each PC 
+  theme_bw() +                             # sets theme options
+  theme(strip.background = element_rect(fill = "white")) +
+  labs(x = expression("PFOS Constituents"),
+       y = "Loadings") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+loadings_plot <-
+  loadings.long %>% 
+ mutate(PC = factor(PC, levels = c("PC1", "PC2", "PC3", "PC4", "PC5", "PC6", "PC7", "PC8", "PC9", "PC10"))) %>% 
+  filter(PC %in% c("PC1", "PC2", "PC3")) %>% 
+ggplot(aes(x = Constituent, y = Loading)) + 
+  geom_col() +                             # creates a column for each loading
+  geom_hline(yintercept = 0, size = 0.2) + # creates a line at 0
+  facet_wrap(~ PC) +                       # creates a distinct box for each PC 
+  theme_bw() +                             # sets theme options
+  theme(strip.background = element_rect(fill = "white")) +
+  labs(x = expression("PFOS Constituents"),
+       y = "Loadings") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+
+```
+
+
+```{r pca_patchwork}
+
+library(patchwork)
+loadings_plot
+pca_gam_plot
+
+pca_fig <-
+loadings_plot / pca_gam_plot
+
+ggsave("pca_fig.png", plot = pca_fig, scale = 1.5, dpi = 320)
+
+
+
+```
+
+
+
 
